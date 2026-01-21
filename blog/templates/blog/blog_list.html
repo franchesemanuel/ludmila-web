@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="container py-5" style="margin-top:120px;">
+  <h1 class="text-center mb-5">Blog</h1>
+
+  {% if posts %}
+    <div class="row">
+      {% for post in posts %}
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 shadow-sm border-0">
+            {% if post.imagen %}
+              <img src="{{ post.imagen.url }}"
+                   class="card-img-top"
+                   style="height:220px; object-fit:cover;">
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">{{ post.titulo }}</h5>
+              <p class="card-text text-muted">
+                {{ post.resumen|truncatewords:20 }}
+              </p>
+              <a href="{% url 'blog:detail' post.slug %}"
+                 class="btn btn-outline-primary btn-sm">
+                Leer más
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-center text-muted">
+      Todavía no hay artículos publicados.
+    </p>
+  {% endif %}
+</section>
+
+{% endblock %}

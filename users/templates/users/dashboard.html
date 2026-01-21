@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="py-5 bg-light" style="min-height: 80vh;">
+  <div class="container">
+    <div class="row justify-content-center">
+
+      <div class="col-12 col-md-10 col-lg-8">
+
+        <!-- CABECERA -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+          <div class="card-body p-4 text-center">
+            <h2 class="mb-2">Hola {{ user.first_name }} 👋</h2>
+            <p class="text-muted">
+              Desde acá podés ver y gestionar tus turnos.
+            </p>
+
+            <a href="{% url 'logout' %}" class="btn btn-outline-secondary btn-sm">
+              Cerrar sesión
+            </a>
+          </div>
+        </div>
+
+        <!-- TURNOS -->
+        <div class="card shadow-sm border-0 rounded-4">
+          <div class="card-body p-4">
+
+            <h4 class="mb-3">📅 Mis turnos</h4>
+
+            {% if turnos %}
+              <div class="table-responsive">
+                <table class="table align-middle">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Comentario</th>
+                      <th>Estado</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+  {% for turno in turnos %}
+    <tr>
+      <td>{{ turno.fecha|date:"d/m/Y" }}</td>
+      <td>{{ turno.hora|time:"H:i" }}</td>
+
+      <td>
+        {% if turno.comentario %}
+          {{ turno.comentario }}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+
+      <td>
+        {% if turno.aceptado %}
+          <span class="badge bg-success">Aceptado</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">Pendiente</span>
+        {% endif %}
+      </td>
+
+      <td>
+        {% if turno.puede_modificarse %}
+          <a href="{% url 'editar_turno' turno.id %}"
+             class="btn btn-sm btn-outline-primary">
+            Modificar
+          </a>
+        {% else %}
+          <span class="text-muted small">No editable</span>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+</tbody>
+                </table>
+              </div>
+            {% else %}
+              <p class="text-muted">
+                Todavía no tenés turnos reservados.
+              </p>
+            {% endif %}
+
+            <a href="{% url 'reservar' %}" class="btn btn-primary mt-3">
+              Reservar nuevo turno
+            </a>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}

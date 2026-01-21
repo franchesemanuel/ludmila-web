@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="container py-5">
+  <h1>{{ post.titulo }}</h1>
+
+  {% if post.imagen %}
+    <img src="{{ post.imagen.url }}" class="img-fluid my-4 rounded">
+  {% endif %}
+
+  <p>{{ post.contenido }}</p>
+
+  <hr>
+
+  <h4>Comentarios</h4>
+
+  {% for comentario in comentarios %}
+    <div class="mb-3">
+      <strong>{{ comentario.usuario.first_name }}</strong>
+      <p>{{ comentario.texto }}</p>
+    </div>
+  {% empty %}
+    <p class="text-muted">Todavía no hay comentarios.</p>
+  {% endfor %}
+
+  {% if user.is_authenticated %}
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      <textarea name="texto" class="form-control" rows="3" placeholder="Escribí tu comentario..."></textarea>
+      <button class="btn btn-primary mt-2">Enviar comentario</button>
+      <p class="text-muted small mt-1">
+        El comentario se publicará luego de ser aprobado.
+      </p>
+    </form>
+  {% else %}
+    <p class="text-muted">
+      Iniciá sesión para comentar.
+    </p>
+  {% endif %}
+</section>
+
+{% endblock %}
