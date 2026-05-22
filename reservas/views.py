@@ -1,57 +1,119 @@
-from django.shortcuts import render, redirect
+import logging
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dtime, date
 from django.utils import timezone
 from django.contrib import messages
-from .models import Turno, ConfiguracionAgenda, DiaBloqueado
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from .models import Turno, ConfiguracionAgenda, DiaBloqueado, Servicio
+
+logger = logging.getLogger("ludmila.security")
+
+HORA_INICIO_DEFAULT = dtime(9, 0)
+HORA_FIN_DEFAULT = dtime(18, 0)
+INTERVALO_DEFAULT = 30
+DIAS_DEFAULT = [True, True, True, True, True, True, False]  # Lun-Sab, Dom no
 
 
-
-
+def _get_config():
+    config = ConfiguracionAgenda.objects.first()
+    if config:
+        return (
+            config.hora_inicio,
+            config.hora_fin,
+            config.intervalo_minutos,
+            [
+                config.trabaja_lunes, config.trabaja_martes,
+                config.trabaja_miercoles, config.trabaja_jueves,
+                config.trabaja_viernes, config.trabaja_sabado,
+                config.trabaja_domingo,
+            ]
+        )
+    return HORA_INICIO_DEFAULT, HORA_FIN_DEFAULT, INTERVALO_DEFAULT, DIAS_DEFAULT
 
 
 @login_required
 def reservar(request):
+    servicios_pestanas = Servicio.objects.filter(activo=True, categoria='pestanas')
+    servicios_cejas    = Servicio.objects.filter(activo=True, categoria='cejas')
+    ctx = {"servicios_pestanas": servicios_pestanas, "servicios_cejas": servicios_cejas}
+
     if request.method == "POST":
 
-        # 👉 Si el usuario está logueado
-        if request.user.is_authenticated:
-            nombre = request.user.first_name
-            telefono = request.user.username
-            usuario = request.user
-        else:
-            nombre = request.POST.get("nombre_completo")
-            telefono = request.POST.get("telefono")
-            usuario = None
+        # ── 1. Parsear tipos correctos desde el POST ──────────────────────────
+        fecha_str = request.POST.get("fecha", "").strip()
+        hora_str  = request.POST.get("hora",  "").strip()
 
-        Turno.objects.create(
-            usuario=usuario,
-            nombre_completo=nombre,
-            telefono=telefono,
-            fecha=request.POST.get("fecha"),
-            hora=request.POST.get("hora"),
-            comentario=request.POST.get("comentario", "")
-        )
+        try:
+            fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Fecha inválida. Usá el calendario.")
+            return render(request, "reservas/reservar.html", ctx)
 
-        messages.success(
-            request,
-            "✅ ¡Tu turno fue reservado con éxito!"
-        )
+        try:
+            hora = datetime.strptime(hora_str, "%H:%M").time()
+        except ValueError:
+            messages.error(request, "Hora inválida. Seleccioná un horario disponible.")
+            return render(request, "reservas/reservar.html", ctx)
 
-        # 🔁 Redirección inteligente
-        if request.user.is_authenticated:
-            return redirect("dashboard")
-        else:
-            return redirect("reservar")
+        # ── 2. Verificar mínimo 2 horas de anticipación ───────────────────────
+        slot_aware = timezone.make_aware(datetime.combine(fecha, hora))
+        if slot_aware <= timezone.now() + timedelta(hours=2):
+            messages.error(request, "Las reservas requieren al menos 2 horas de anticipación.")
+            return render(request, "reservas/reservar.html", ctx)
 
-    return render(request, "reservas/reservar.html")
+        # ── 3. Verificar que el slot no esté ocupado ──────────────────────────
+        if Turno.objects.filter(fecha=fecha, hora=hora, cancelado=False).exists():
+            messages.error(request, "Ese horario ya está reservado. Por favor elegí otro.")
+            return render(request, "reservas/reservar.html", ctx)
+
+        # ── 4. Verificar que el usuario no tenga ya una cita ese día ─────────
+        if Turno.objects.filter(usuario=request.user, fecha=fecha, cancelado=False).exists():
+            messages.error(request, "Ya tenés una cita reservada para ese día.")
+            return render(request, "reservas/reservar.html", ctx)
+
+        # ── 5. Resolver servicio ──────────────────────────────────────────────
+        servicio = None
+        servicio_id = request.POST.get("servicio")
+        if servicio_id:
+            try:
+                servicio = Servicio.objects.get(id=servicio_id, activo=True)
+            except Servicio.DoesNotExist:
+                pass
+
+        # ── 6. Crear — el modelo todavía corre full_clean() como última red ───
+        try:
+            Turno.objects.create(
+                usuario=request.user,
+                nombre_completo=request.user.first_name or request.user.username,
+                telefono=request.user.username,
+                fecha=fecha,
+                hora=hora,
+                comentario=request.POST.get("comentario", "")[:500],
+                servicio=servicio,
+            )
+            logger.info(
+                "Reserva creada: usuario=%s fecha=%s hora=%s servicio=%s",
+                request.user.username, fecha, hora,
+                servicio.nombre if servicio else "—",
+            )
+            messages.success(request, "Tu cita fue reservada. Te confirmamos a la brevedad.")
+            return redirect("mis_citas")
+        except ValidationError as e:
+            for msg in e.messages:
+                messages.error(request, msg)
+
+    return render(request, "reservas/reservar.html", ctx)
 
 
+@login_required
 def horas_disponibles(request):
+    """
+    Devuelve lista de horas disponibles para una fecha dada.
+    Usa comparación timezone-aware para filtrar horas pasadas.
+    """
     fecha_str = request.GET.get("fecha")
-
     if not fecha_str:
         return JsonResponse({"horas": []})
 
@@ -60,84 +122,87 @@ def horas_disponibles(request):
     except ValueError:
         return JsonResponse({"horas": []})
 
-    # ❌ día bloqueado
+    # Fecha en el pasado
+    if fecha < timezone.localdate():
+        return JsonResponse({"horas": [], "motivo": "fecha_pasada"})
+
     if DiaBloqueado.objects.filter(fecha=fecha).exists():
-        return JsonResponse({"horas": []})
+        return JsonResponse({"horas": [], "motivo": "dia_bloqueado"})
 
-    config = ConfiguracionAgenda.objects.first()
-    if not config:
-        return JsonResponse({"horas": []})
-
-    # ❌ día no laborable
-    dias = [
-        config.trabaja_lunes,
-        config.trabaja_martes,
-        config.trabaja_miercoles,
-        config.trabaja_jueves,
-        config.trabaja_viernes,
-        config.trabaja_sabado,
-        config.trabaja_domingo,
-    ]
+    hora_inicio, hora_fin, intervalo, dias = _get_config()
 
     if not dias[fecha.weekday()]:
-        return JsonResponse({"horas": []})
+        return JsonResponse({"horas": [], "motivo": "dia_no_laboral"})
 
-    hoy = timezone.localdate()
-    ahora = timezone.localtime().time()
+    # Límite: el slot debe estar al menos 2 horas en el futuro
+    minimo_desde = timezone.now() + timedelta(hours=2)
 
-    ocupados = Turno.objects.filter(fecha=fecha).values_list("hora", flat=True)
+    ocupados = set(
+        Turno.objects.filter(fecha=fecha, cancelado=False).values_list("hora", flat=True)
+    )
 
     horas = []
-    actual = datetime.combine(fecha, config.hora_inicio)
-    fin = datetime.combine(fecha, config.hora_fin)
+    actual = datetime.combine(fecha, hora_inicio)
+    fin = datetime.combine(fecha, hora_fin)
 
     while actual < fin:
         hora = actual.time()
-
-        # ❌ horas pasadas si es hoy
-        if fecha == hoy and hora <= ahora:
-            actual += timedelta(minutes=config.intervalo_minutos)
-            continue
-
-        if hora not in ocupados:
+        slot_aware = timezone.make_aware(datetime.combine(fecha, hora))
+        if slot_aware > minimo_desde and hora not in ocupados:
             horas.append(hora.strftime("%H:%M"))
+        actual += timedelta(minutes=intervalo)
 
-        actual += timedelta(minutes=config.intervalo_minutos)
+    response = JsonResponse({"horas": horas})
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    return response
 
-    return JsonResponse({"horas": horas})
 
+@login_required
+def dias_disponibles(request):
+    """
+    Devuelve los días deshabilitados para los próximos 90 días:
+    - Fechas específicas bloqueadas (DiaBloqueado)
+    - Días de la semana no laborables
+    """
+    _, _, _, dias = _get_config()
 
-def editar_turno(request, turno_id):
-    turno = get_object_or_404(Turno, id=turno_id)
+    hoy = timezone.localdate()
 
-    # 🔒 Seguridad: solo el dueño del turno
-    if str(turno.telefono) != request.user.username:
-        messages.error(request, "No tenés permiso para editar este turno.")
-        return redirect("dashboard")
+    # flatpickr usa: 0=Dom, 1=Lun, 2=Mar, 3=Mie, 4=Jue, 5=Vie, 6=Sab
+    python_a_fp = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 0}
+    dias_semana_disabled = [
+        python_a_fp[i] for i, trabaja in enumerate(dias) if not trabaja
+    ]
 
-    # ⏱ Regla: no editable con menos de 2 horas
-    fecha_hora_turno = timezone.make_aware(
-        datetime.combine(turno.fecha, turno.hora)
+    hasta = hoy + timedelta(days=90)
+    fechas_bloqueadas = list(
+        DiaBloqueado.objects.filter(fecha__gte=hoy, fecha__lte=hasta)
+        .values_list("fecha", flat=True)
     )
-    ahora = timezone.now()
+    fechas_bloqueadas_str = [f.strftime("%Y-%m-%d") for f in fechas_bloqueadas]
 
-    if fecha_hora_turno - ahora < timedelta(hours=2):
-        messages.warning(
-            request,
-            "⏱ No podés modificar el turno con menos de 2 horas de anticipación."
-        )
-        return redirect("dashboard")
+    return JsonResponse({
+        "dias_semana_disabled": dias_semana_disabled,
+        "fechas_bloqueadas": fechas_bloqueadas_str,
+        "hoy": hoy.strftime("%Y-%m-%d"),
+    })
+
+
+@login_required
+def cancelar_turno(request, turno_id):
+    turno = get_object_or_404(Turno, id=turno_id, usuario=request.user)
+
+    if not turno.puede_modificarse():
+        messages.warning(request, "No podés cancelar con menos de 2 horas de anticipación.")
+        return redirect("mis_citas")
 
     if request.method == "POST":
-        turno.fecha = request.POST.get("fecha")
-        turno.hora = request.POST.get("hora")
-        turno.comentario = request.POST.get("comentario", "")
-        turno.aceptado = False  # vuelve a pendiente si se modifica
-        turno.save()
+        Turno.objects.filter(pk=turno.pk).update(cancelado=True, aceptado=False)
+        logger.info(
+            "Turno cancelado: usuario=%s turno_id=%d fecha=%s hora=%s",
+            request.user.username, turno.pk, turno.fecha, turno.hora,
+        )
+        messages.success(request, "Cita cancelada correctamente.")
+        return redirect("mis_citas")
 
-        messages.success(request, "✅ Turno modificado correctamente.")
-        return redirect("dashboard")
-
-    return render(request, "reservas/editar_turno.html", {
-        "turno": turno
-    })
+    return render(request, "reservas/cancelar_turno.html", {"turno": turno})

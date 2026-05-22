@@ -1,57 +1,210 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ludmila Estudio – Pestanas y Cejas en Cordoba{% endblock %}
 
 {% block content %}
-<header class="masthead">
-    <div class="container px-4 px-lg-5 d-flex h-100 align-items-center justify-content-center">
-        <div class="d-flex justify-content-center">
-            <div class="text-center">
-                <h1 class="mx-auto my-0 text-uppercase">Ludmila</h1>
-                <h2 class="text-white-50 mx-auto mt-2 mb-5">
-                    Estética & Bienestar
-                </h2>
-                <a class="btn btn-primary" href="{% url 'reservar' %}">
-                    Reservar turno
-                </a>
-            </div>
-        </div>
-    </div>
-</header>
 
-<section class="container py-5">
-  <h2 class="text-center mb-4">Últimos Artículos del Blog</h2>
+<!-- ========== HERO ========== -->
+<section class="hero-section">
+  <div class="hero-glow-left"></div>
+  <div class="hero-content">
+    <div class="hero-rule"></div>
+    <p class="hero-eyebrow">Arte en tu mirada</p>
+    <h1 class="hero-title"><em>Pestanas &amp; Cejas</em><br>que cuentan tu historia</h1>
+    <p class="hero-subtitle">Estetica de lujo en Cordoba. Cada detalle, pensado para vos.</p>
+    <div class="hero-actions">
+      <a href="{% url 'reservar' %}" class="btn btn-primary-gold btn-lg">
+        <i class="fa-regular fa-calendar-check me-2"></i>Reservar cita
+      </a>
+      <a href="#servicios" class="btn btn-outline-white btn-lg">
+        Ver servicios
+      </a>
+    </div>
+  </div>
+</section>
 
-  {% if posts %}
-    <div class="row">
-      {% for post in posts %}
-        <div class="col-md-4 mb-4">
-          <div class="card h-100 shadow-sm border-0">
-            {% if post.imagen %}
-              <img src="{{ post.imagen.url }}"
-                   class="card-img-top"
-                   style="height:200px; object-fit:cover;">
-            {% endif %}
-            <div class="card-body">
-              <h5 class="card-title">{{ post.titulo }}</h5>
-              <p class="card-text text-muted">
-                {{ post.resumen|truncatewords:15 }}
-              </p>
-              <a href="{% url 'blog:detail' post.slug %}"
-                 class="btn btn-outline-primary btn-sm">
-                Leer más
-              </a>
-            </div>
-          </div>
+<!-- ========== DIVIDER ========== -->
+<div class="divider-ornament">
+  <div class="divider-ornament-diamond"></div>
+</div>
+
+<!-- ========== PESTAÑAS ========== -->
+<section class="py-6" id="servicios" style="background: var(--champagne-pale);">
+  <div class="container">
+
+    <div class="text-center mb-5">
+      <p class="section-eyebrow">Tratamientos</p>
+      <h2 class="section-title">Pestanas</h2>
+      <p class="section-subtitle">Realza tu mirada con nuestros servicios especializados en pestanas.</p>
+    </div>
+
+    <div class="row g-4">
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-eye"></i></div>
+          <h4 class="service-name">Lifting de Pestanas</h4>
+          <p class="service-desc">Curva y levanta tus pestanas naturales desde la raiz. Efecto abierto y luminoso que dura hasta 8 semanas.</p>
         </div>
-      {% endfor %}
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-wand-sparkles"></i></div>
+          <h4 class="service-name">Extensiones de Pestanas</h4>
+          <p class="service-desc">Volumen y largo personalizados con materiales premium. Pelo a pelo para un resultado 100% natural.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-droplet"></i></div>
+          <h4 class="service-name">Tinte de Pestanas</h4>
+          <p class="service-desc">Color intenso y duradero sin necesidad de mascara. Ideal para un look natural de dia a dia.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <h4 class="service-name">Efecto Volumen</h4>
+          <p class="service-desc">Maxima densidad con la tecnica de abanico ruso. Para quienes buscan un look mas dramatico y llamativo.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-rotate"></i></div>
+          <h4 class="service-name">Mantenimiento</h4>
+          <p class="service-desc">Relleno y mantenimiento de extensiones cada 3 semanas para conservar la fullness y durabilidad.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-scissors"></i></div>
+          <h4 class="service-name">Retiro de Extensiones</h4>
+          <p class="service-desc">Retiro seguro y sin dano con productos especializados que cuidan la salud de tus pestanas naturales.</p>
+        </div>
+      </div>
+
     </div>
-    <div class="text-center mt-4">
-      <a href="{% url 'blog:index' %}" class="btn btn-primary">Ver todos los artículos</a>
+  </div>
+</section>
+
+<!-- ========== DIVIDER ========== -->
+<div class="divider-ornament">
+  <div class="divider-ornament-diamond"></div>
+</div>
+
+<!-- ========== CEJAS ========== -->
+<section class="py-6" style="background: var(--card-white);">
+  <div class="container">
+
+    <div class="text-center mb-5">
+      <p class="section-eyebrow">Tratamientos</p>
+      <h2 class="section-title">Cejas</h2>
+      <p class="section-subtitle">Dales forma, volumen y definicion perfecta a tus cejas.</p>
     </div>
-  {% else %}
-    <p class="text-center text-muted">
-      Pronto publicaremos nuevos artículos.
-    </p>
-  {% endif %}
+
+    <div class="row g-4">
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-pen-nib"></i></div>
+          <h4 class="service-name">Diseno de Cejas</h4>
+          <p class="service-desc">Forma ideal segun la estructura de tu rostro. Depilacion con hilo o cera para un acabado perfecto.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-rainbow"></i></div>
+          <h4 class="service-name">Laminado de Cejas</h4>
+          <p class="service-desc">Fija y peina tus cejas hacia arriba para un efecto fullness y peinado que dura hasta 6 semanas.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-palette"></i></div>
+          <h4 class="service-name">Tinte de Cejas</h4>
+          <p class="service-desc">Rellena visualmente las cejas y aporta color uniforme. Ideal para cejas claras o con espacios.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-spa"></i></div>
+          <h4 class="service-name">Laminado + Tinte</h4>
+          <p class="service-desc">El combo definitivo: laminado y tinte juntos para cejas perfectamente definidas y con color.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-feather"></i></div>
+          <h4 class="service-name">Henna de Cejas</h4>
+          <p class="service-desc">Coloracion natural con henna que tine tanto los pelos como la piel. Dura hasta 4 semanas en la piel.</p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-star"></i></div>
+          <h4 class="service-name">Combo Pestanas + Cejas</h4>
+          <p class="service-desc">Tratamiento completo de mirada: lifting de pestanas y laminado de cejas en una sola sesion.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ========== POR QUE ELEGIRNOS ========== -->
+<section class="py-6 why-section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <p class="section-eyebrow" style="color: var(--champagne-lt);">Por que elegirnos</p>
+      <h2 class="section-title" style="color: #ffffff;">Nuestro compromiso</h2>
+    </div>
+    <div class="row g-4 text-center">
+      <div class="col-md-4">
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-award"></i></div>
+          <h4 class="why-title">Experiencia</h4>
+          <p class="why-text">Anos de practica y formacion continua para brindarte el mejor resultado posible.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-gem"></i></div>
+          <h4 class="why-title">Productos Premium</h4>
+          <p class="why-text">Solo materiales de primera calidad, certificados y seguros para tu piel y tus ojos.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-heart"></i></div>
+          <h4 class="why-title">Atencion Personalizada</h4>
+          <p class="why-text">Cada cliente es unica. Analizamos tu mirada para ofrecerte el tratamiento ideal.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CTA STRIP ========== -->
+<section class="cta-strip py-6">
+  <div class="container text-center">
+    <p class="section-eyebrow">Tu momento es ahora</p>
+    <h2 class="section-title mb-3">Lista para reservar?</h2>
+    <p class="section-subtitle mb-4">Agenda tu cita en minutos y dale a tu mirada el cuidado que merece.</p>
+    <a href="{% url 'reservar' %}" class="btn btn-primary-gold btn-lg">
+      <i class="fa-regular fa-calendar-check me-2"></i>Reservar mi cita
+    </a>
+  </div>
 </section>
 
 {% endblock %}

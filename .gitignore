@@ -17,6 +17,9 @@ staticfiles/
 # Variables de entorno
 .env
 
+# Logs
+logs/
+
 # SO / editor
 .DS_Store
 .vscode/

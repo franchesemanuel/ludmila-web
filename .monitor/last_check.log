@@ -1,0 +1,70 @@
+
+===== MONITOR LUDMILA-WEB 2026-05-22 17:52:17 =====
+
+-- 1. Django system check --
+  [OK]  Sin problemas
+
+-- 2. CSRF en formularios POST --
+  [OK]  ./blog/templates/blog/blog_detail.html
+  [OK]  ./reservas/templates/reservas/reservar.html
+  [OK]  ./reservas/templates/reservas/cancelar_turno.html
+  [OK]  ./reservas/templates/reservas/editar_turno.html
+  [OK]  ./users/templates/users/register.html
+  [OK]  ./users/templates/users/login.html
+  [OK]  ./templates/reservas/reservar.html
+  [OK]  ./templates/reservas/cancelar_turno.html
+
+-- 3. Herencia de templates --
+  [WARN] ./blog/templates/blog/comment_form.html no extiende ningún template (puede ser parcial o fragmento)
+  [OK]  ./blog/templates/blog/blog_list.html -> {% extends "base.html" %}
+  [OK]  ./blog/templates/blog/blog_detail.html -> {% extends "base.html" %}
+  [OK]  ./reservas/templates/reservas/reservar.html -> {% extends "base.html" %}
+  [OK]  ./reservas/templates/reservas/cancelar_turno.html -> {% extends "base.html" %}
+  [OK]  ./reservas/templates/reservas/editar_turno.html -> {% extends "base.html" %}
+  [OK]  ./users/templates/users/mis_citas.html -> {% extends "base.html" %}
+  [OK]  ./users/templates/users/register.html -> {% extends "base.html" %}
+  [OK]  ./users/templates/users/login.html -> {% extends "base.html" %}
+  [OK]  ./users/templates/users/dashboard.html -> {% extends "base.html" %}
+  [OK]  ./templates/core/home.html -> {% extends "base.html" %}
+  [OK]  ./templates/admin/reservas/agenda.html -> {% extends "admin/base_site.html" %}
+  [OK]  ./templates/admin/reservas/turno/change_list.html -> {% extends "admin/change_list.html" %}
+  [OK]  ./templates/admin/reservas/semana.html -> {% extends "admin/base_site.html" %}
+  [OK]  ./templates/blog/blog_list.html -> {% extends "base.html" %}
+  [OK]  ./templates/reservas/reservar.html -> {% extends "base.html" %}
+  [OK]  ./templates/reservas/cancelar_turno.html -> {% extends "base.html" %}
+
+-- 4. URL names críticos --
+  [OK]  url 'home' encontrado (3 usos)
+  [OK]  url 'reservar' encontrado (3 usos)
+  [WARN] url 'blog:index' no encontrado en /templates/ (puede estar en templates de app)
+  [OK]  url 'blog:detail' encontrado (1 usos)
+  [WARN] url 'dashboard' no encontrado en /templates/ (puede estar en templates de app)
+  [OK]  url 'login' encontrado (1 usos)
+  [OK]  url 'logout' encontrado (1 usos)
+  [OK]  url 'register' encontrado (1 usos)
+
+-- 5. Middleware de seguridad --
+  [OK]  CsrfViewMiddleware presente
+  [OK]  SecurityMiddleware presente
+  [OK]  AuthenticationMiddleware presente
+  [OK]  XFrameOptionsMiddleware presente
+
+-- 6. Settings de seguridad --
+  [OK]  SECRET_KEY presente
+
+-- 7. Sintaxis Python --
+  [OK]  core/views.py OK
+  [OK]  blog/views.py OK
+  [OK]  reservas/views.py OK
+  [OK]  users/views.py OK
+  [OK]  reservas/models.py OK
+  [OK]  blog/models.py OK
+
+-- 8. Archivos estáticos --
+  [OK]  static/css/styles.css existe (   20266 bytes)
+
+===== RESUMEN =====
+  Errores:    0
+  Advertencias: 3
+  ESTADO: OK
+

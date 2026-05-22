@@ -63,6 +63,33 @@ class DiaBloqueado(models.Model):
 
 
 # =====================
+# SERVICIOS
+# =====================
+
+CATEGORIA_CHOICES = [
+    ('pestanas', 'Pestañas'),
+    ('cejas', 'Cejas'),
+]
+
+class Servicio(models.Model):
+    nombre = models.CharField(max_length=100)
+    categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, default='pestanas')
+    descripcion = models.TextField(blank=True)
+    duracion_minutos = models.PositiveIntegerField(default=60)
+    precio = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    activo = models.BooleanField(default=True)
+    orden = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Servicio"
+        verbose_name_plural = "Servicios"
+        ordering = ["categoria", "orden", "nombre"]
+
+
+# =====================
 # TURNOS
 # =====================
 
@@ -80,7 +107,10 @@ class Turno(models.Model):
 
     fecha = models.DateField()
     hora = models.TimeField()
-    comentario = models.TextField(blank=True)
+    comentario = models.TextField(blank=True, max_length=500)
+
+    servicio = models.ForeignKey('Servicio', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Servicio")
+    cancelado = models.BooleanField(default=False)
 
     aceptado = models.BooleanField(default=False)
     comentario_ludmila = models.TextField(
@@ -104,47 +134,45 @@ class Turno(models.Model):
     # =====================
 
     def clean(self):
-        hoy = timezone.localdate()
-        ahora = timezone.localtime().time()
+        import datetime as _dt
 
-        # ❌ Fecha pasada
-        if self.fecha < hoy:
-            raise ValidationError("No se pueden reservar fechas pasadas.")
+        # ── Asegurar tipos correctos (el POST envía strings) ──────────────────
+        try:
+            fecha = self.fecha if isinstance(self.fecha, _dt.date) else _dt.date.fromisoformat(str(self.fecha))
+            hora  = self.hora  if isinstance(self.hora,  _dt.time) else _dt.time.fromisoformat(str(self.hora)[:5])
+        except (ValueError, TypeError, AttributeError):
+            raise ValidationError("Fecha u hora inválida.")
 
-        # ❌ Hora pasada si es hoy
-        if self.fecha == hoy and self.hora <= ahora:
-            raise ValidationError("No se pueden reservar horas pasadas.")
+        # ── Sólo para turnos NUEVOS: validar que no sea hora pasada ───────────
+        # Los turnos existentes (admin confirmando, editando nota, etc.) no
+        # se revalidan para no bloquear la gestión de citas ya creadas.
+        if not self.pk:
+            slot_aware = timezone.make_aware(_dt.datetime.combine(fecha, hora))
+            if slot_aware <= timezone.now() + _dt.timedelta(hours=2):
+                raise ValidationError("Las reservas requieren al menos 2 horas de anticipación.")
 
-        # ❌ Día bloqueado
-        if DiaBloqueado.objects.filter(fecha=self.fecha).exists():
-            raise ValidationError("Este día no está disponible.")
+            # Día bloqueado
+            if DiaBloqueado.objects.filter(fecha=fecha).exists():
+                raise ValidationError("Este día no está disponible.")
 
-        config = ConfiguracionAgenda.objects.first()
-        if not config:
-            raise ValidationError("La agenda no está configurada.")
+            config = ConfiguracionAgenda.objects.first()
+            if not config:
+                raise ValidationError("La agenda no está configurada.")
 
-        # ❌ Día no laboral
-        dias = [
-            config.trabaja_lunes,
-            config.trabaja_martes,
-            config.trabaja_miercoles,
-            config.trabaja_jueves,
-            config.trabaja_viernes,
-            config.trabaja_sabado,
-            config.trabaja_domingo,
-        ]
+            dias = [
+                config.trabaja_lunes, config.trabaja_martes, config.trabaja_miercoles,
+                config.trabaja_jueves, config.trabaja_viernes,
+                config.trabaja_sabado, config.trabaja_domingo,
+            ]
+            if not dias[fecha.weekday()]:
+                raise ValidationError("No se atiende ese día.")
 
-        if not dias[self.fecha.weekday()]:
-            raise ValidationError("No se atiende ese día.")
+            if not (config.hora_inicio <= hora < config.hora_fin):
+                raise ValidationError("Horario fuera de atención.")
 
-        # ❌ Fuera de horario
-        if not (config.hora_inicio <= self.hora < config.hora_fin):
-            raise ValidationError("Horario fuera de atención.")
-
-        # ❌ Turno duplicado
+        # ── Siempre: no superponer con otro turno activo ──────────────────────
         if Turno.objects.exclude(pk=self.pk).filter(
-            fecha=self.fecha,
-            hora=self.hora
+            fecha=self.fecha, hora=self.hora, cancelado=False
         ).exists():
             raise ValidationError("Ese horario ya está reservado.")
 
@@ -157,9 +185,6 @@ class Turno(models.Model):
     # =====================
 
     def puede_modificarse(self):
-        """
-        No se puede modificar con menos de 2 horas de anticipación
-        """
         fecha_hora_turno = timezone.make_aware(
             datetime.combine(self.fecha, self.hora)
         )
@@ -167,3 +192,14 @@ class Turno(models.Model):
 
     def __str__(self):
         return f"{self.nombre_completo} - {self.fecha} {self.hora}"
+
+    class Meta:
+        verbose_name = "Turno"
+        verbose_name_plural = "Turnos"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fecha", "hora"],
+                condition=models.Q(cancelado=False),
+                name="unique_turno_activo_por_slot",
+            )
+        ]

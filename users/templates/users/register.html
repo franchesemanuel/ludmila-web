@@ -1,72 +1,101 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Crear cuenta – Ludmila Estudio{% endblock %}
+
 {% block content %}
+<div class="auth-page" style="margin-top: -72px;">
 
-<div class="container py-5" style="max-width: 500px;">
-  <h2 class="mb-4 text-center">Crear cuenta</h2>
-
-  {% for message in messages %}
-    <div class="alert alert-warning text-center">{{ message }}</div>
-  {% endfor %}
-
-  <form method="post">
-    {% csrf_token %}
-
-    <!-- Nombre -->
-    <div class="mb-3">
-      <label class="form-label">Nombre completo</label>
-      <input
-        type="text"
-        name="nombre"
-        class="form-control"
-        placeholder="Ej: Ludmila Salinas"
-        required
-      >
+  <!-- Panel izquierdo (desktop) -->
+  <div class="auth-left d-none d-lg-flex col-lg-5">
+    <div class="auth-left-glow"></div>
+    <div class="auth-left-content">
+      <p class="auth-brand">Ludmila Estudio</p>
+      <p class="auth-tagline">Comenza tu<br>transformacion</p>
+      <div class="auth-gold-line"></div>
     </div>
+  </div>
 
-    <!-- Teléfono -->
-    <div class="mb-3">
-      <label class="form-label">Teléfono</label>
-      <input
-        type="text"
-        name="telefono"
-        class="form-control"
-        placeholder="Ej: 223335"
-        required
-      >
+  <!-- Panel derecho (formulario) -->
+  <div class="auth-right col-12 col-lg-7">
+    <div class="auth-form-box">
+
+      <p class="section-eyebrow text-center">Crea tu cuenta</p>
+      <h2 class="section-title text-center mb-1">Registrate</h2>
+      <p class="text-center mb-4" style="color: var(--texto-muted); font-size:0.9rem; font-weight:300;">
+        Registrate para reservar y gestionar tus turnos facilmente
+      </p>
+
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}warning{% endif %} alert-dismissible fade show" role="alert">
+          <i class="fa-solid fa-circle-exclamation me-2"></i>{{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label">
+            <i class="fa-solid fa-user me-1" style="color: var(--gold);"></i>
+            Nombre completo
+          </label>
+          <input type="text" name="nombre"
+                 class="form-control form-control-lg"
+                 placeholder="Ej: Maria Gonzalez"
+                 autofocus required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">
+            <i class="fa-solid fa-phone me-1" style="color: var(--gold);"></i>
+            Telefono
+          </label>
+          <input type="text" name="telefono"
+                 class="form-control form-control-lg"
+                 placeholder="Ej: 3512345678"
+                 required>
+          <div class="form-text" style="color: var(--texto-muted); font-size:0.82rem;">Tu telefono sera tu usuario para ingresar.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">
+            <i class="fa-solid fa-lock me-1" style="color: var(--gold);"></i>
+            Contrasena
+          </label>
+          <input type="password" name="password1"
+                 class="form-control form-control-lg"
+                 placeholder="Tu contrasena"
+                 required>
+          <div class="form-text" style="color: var(--texto-muted); font-size:0.82rem;">Minimo 8 caracteres, una mayuscula y un numero.</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">
+            <i class="fa-solid fa-lock me-1" style="color: var(--gold);"></i>
+            Repetir contrasena
+          </label>
+          <input type="password" name="password2"
+                 class="form-control form-control-lg"
+                 placeholder="Repeti la contrasena"
+                 required>
+        </div>
+
+        <button type="submit" class="btn btn-primary-gold btn-lg w-100">
+          <i class="fa-solid fa-user-plus me-2"></i>Crear cuenta
+        </button>
+      </form>
+
+      <p class="text-center mt-4" style="font-size:0.88rem; color: var(--texto-muted);">
+        Ya tenes cuenta?
+        <a href="{% url 'login' %}" style="color: var(--gold); font-weight: 600;">
+          Iniciar sesion
+        </a>
+      </p>
+
     </div>
+  </div>
 
-    <!-- Contraseña -->
-    <div class="mb-3">
-      <label class="form-label">Contraseña</label>
-      <input
-        type="password"
-        name="password1"
-        class="form-control"
-        placeholder="Ej: Pestanas123"
-        required
-      >
-      <div class="form-text">
-        Mínimo 8 caracteres, una mayúscula y un número.
-      </div>
-    </div>
-
-    <!-- Repetir contraseña -->
-    <div class="mb-4">
-      <label class="form-label">Repetir contraseña</label>
-      <input
-        type="password"
-        name="password2"
-        class="form-control"
-        placeholder="Repetí la contraseña"
-        required
-      >
-    </div>
-
-    <!-- Botón -->
-    <button type="submit" class="btn btn-primary w-100">
-      Crear cuenta
-    </button>
-  </form>
 </div>
-
 {% endblock %}

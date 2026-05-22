@@ -1,56 +1,66 @@
 {% extends "base.html" %}
+
+{% block title %}Modificar turno – Ludmila Estudio{% endblock %}
+
 {% block content %}
+<section class="py-5" style="min-height: 80vh; background: var(--color-bg);">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-8 col-lg-5">
 
-<section class="py-5 bg-light">
-  <div class="container" style="max-width: 500px;">
-    <div class="card shadow-sm rounded-4">
-      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <p class="section-eyebrow">Tu turno</p>
+          <h2 class="section-title">Modificar turno</h2>
+        </div>
 
-        <h3 class="mb-4 text-center">Modificar turno</h3>
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
 
-        <form method="post">
-          {% csrf_token %}
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4 p-md-5">
 
-          <div class="mb-3">
-            <label class="form-label">Fecha</label>
-            <input
-              type="date"
-              name="fecha"
-              class="form-control"
-              value="{{ turno.fecha|date:'Y-m-d' }}"
-              required
-            >
+            <form method="post">
+              {% csrf_token %}
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Fecha</label>
+                <input type="date" name="fecha" class="form-control form-control-lg"
+                       value="{{ turno.fecha|date:'Y-m-d' }}" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Hora</label>
+                <input type="time" name="hora" class="form-control form-control-lg"
+                       value="{{ turno.hora|time:'H:i' }}" required>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-semibold">Comentario <span class="text-muted fw-normal">(opcional)</span></label>
+                <textarea name="comentario" class="form-control" rows="3">{{ turno.comentario }}</textarea>
+              </div>
+
+              <div class="d-flex gap-3">
+                <button type="submit" class="btn btn-primary-gold btn-lg flex-grow-1">
+                  <i class="fa-solid fa-floppy-disk me-2"></i>Guardar cambios
+                </button>
+                <a href="{% url 'mis_citas' %}" class="btn btn-outline-secondary btn-lg">
+                  Cancelar
+                </a>
+              </div>
+
+            </form>
+
           </div>
-
-          <div class="mb-3">
-            <label class="form-label">Hora</label>
-            <input
-              type="time"
-              name="hora"
-              class="form-control"
-              value="{{ turno.hora|time:'H:i' }}"
-              required
-            >
-          </div>
-
-          <div class="mb-4">
-            <label class="form-label">Comentario</label>
-            <textarea
-              name="comentario"
-              class="form-control"
-              rows="3"
-            >{{ turno.comentario }}</textarea>
-          </div>
-
-          <button type="submit" class="btn btn-primary w-100">
-            Guardar cambios
-          </button>
-
-        </form>
+        </div>
 
       </div>
     </div>
   </div>
 </section>
-
 {% endblock %}

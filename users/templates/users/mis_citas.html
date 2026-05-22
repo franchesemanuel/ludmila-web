@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mis citas – Ludmila Estudio{% endblock %}
+
+{% block content %}
+<section class="py-5" style="min-height: 80vh; background: var(--color-bg);">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-10">
+
+        <!-- Header -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <p class="section-eyebrow mb-0">Panel de cliente</p>
+            <h2 class="section-title mb-0">Mis citas</h2>
+          </div>
+          <a href="{% url 'reservar' %}" class="btn btn-primary-gold">
+            <i class="fa-solid fa-plus me-2"></i>Nueva cita
+          </a>
+        </div>
+
+        <!-- ===== PRÓXIMAS CITAS ===== -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+          <div class="card-body p-4">
+
+            <h5 class="mb-4" style="font-family: var(--font-heading); color:var(--color-accent);">
+              <i class="fa-regular fa-calendar me-2" style="color:var(--color-primary);"></i>
+              Próximas citas
+            </h5>
+
+            {% if proximas %}
+              <div class="row g-3">
+                {% for turno in proximas %}
+                  <div class="col-12 col-md-6">
+                    <div class="cita-card {% if turno.aceptado %}cita-aceptada{% else %}cita-pendiente{% endif %}">
+
+                      <!-- Estado -->
+                      <div class="cita-estado">
+                        {% if turno.aceptado %}
+                          <span class="badge-estado badge-aceptado">
+                            <i class="fa-solid fa-circle-check me-1"></i>Confirmada
+                          </span>
+                        {% else %}
+                          <span class="badge-estado badge-pendiente">
+                            <i class="fa-regular fa-clock me-1"></i>Pendiente
+                          </span>
+                        {% endif %}
+                      </div>
+
+                      <!-- Servicio -->
+                      <div class="cita-servicio">
+                        {% if turno.servicio %}
+                          {{ turno.servicio.nombre }}
+                        {% else %}
+                          Consulta general
+                        {% endif %}
+                      </div>
+
+                      <!-- Fecha y hora -->
+                      <div class="cita-fecha-hora">
+                        <span class="cita-fecha">
+                          <i class="fa-regular fa-calendar me-1"></i>
+                          {{ turno.fecha|date:"l d \d\e F" }}
+                        </span>
+                        <span class="cita-hora">
+                          <i class="fa-regular fa-clock me-1"></i>
+                          {{ turno.hora|time:"H:i" }} hs
+                        </span>
+                      </div>
+
+                      <!-- Nota de Ludmila -->
+                      {% if turno.comentario_ludmila %}
+                        <div class="cita-nota">
+                          <i class="fa-solid fa-comment-dots me-1" style="color:var(--color-primary);"></i>
+                          <em>{{ turno.comentario_ludmila }}</em>
+                        </div>
+                      {% endif %}
+
+                      <!-- Cancelar -->
+                      {% if turno.puede_modificarse %}
+                        <div class="cita-acciones">
+                          <a href="{% url 'cancelar_turno' turno.id %}"
+                             class="btn btn-outline-danger btn-sm">
+                            <i class="fa-solid fa-xmark me-1"></i>Cancelar
+                          </a>
+                        </div>
+                      {% else %}
+                        <p class="cita-no-editable">
+                          <i class="fa-solid fa-lock me-1"></i>
+                          No cancelable (menos de 2 hs)
+                        </p>
+                      {% endif %}
+
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fa-regular fa-calendar-plus mb-3 d-block"
+                   style="font-size:3rem; color:var(--color-primary);"></i>
+                <p class="text-muted mb-3">No tenés citas próximas agendadas.</p>
+                <a href="{% url 'reservar' %}" class="btn btn-primary-gold">
+                  Reservar mi primera cita
+                </a>
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+
+        <!-- ===== HISTORIAL ===== -->
+        {% if pasadas %}
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body p-4">
+
+            <h5 class="mb-4" style="font-family: var(--font-heading); color:var(--color-accent);">
+              <i class="fa-solid fa-clock-rotate-left me-2" style="color:var(--color-muted);"></i>
+              Historial
+            </h5>
+
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Servicio</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for turno in pasadas %}
+                    <tr class="{% if turno.cancelado %}text-muted{% endif %}">
+                      <td>
+                        <span class="{% if turno.cancelado %}text-decoration-line-through{% endif %}">
+                          {{ turno.fecha|date:"d/m/Y" }}
+                        </span>
+                      </td>
+                      <td>{{ turno.hora|time:"H:i" }}</td>
+                      <td>
+                        {% if turno.servicio %}
+                          {{ turno.servicio.nombre }}
+                        {% else %}
+                          <span class="text-muted">—</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if turno.cancelado %}
+                          <span class="badge" style="background:#dc3545;">Cancelada</span>
+                        {% elif turno.aceptado %}
+                          <span class="badge" style="background:#6B4F3A;">Realizada</span>
+                        {% else %}
+                          <span class="badge" style="background:#aaa;">Pasada</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cita-card {
+    background: var(--card-white);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    border: 1.5px solid rgba(201, 169, 110, 0.18);
+    transition: all 0.22s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .cita-card:hover {
+    box-shadow: 0 8px 28px rgba(44, 26, 14, 0.1);
+    transform: translateY(-3px);
+    border-color: rgba(201, 169, 110, 0.4);
+  }
+  .cita-aceptada { border-left: 4px solid var(--champagne); }
+  .cita-pendiente { border-left: 4px solid #D4894A; }
+
+  .badge-estado {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.85rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-body);
+    letter-spacing: 0.3px;
+  }
+  .badge-aceptado { background: rgba(201, 169, 110, 0.15); color: var(--espresso-mid); }
+  .badge-pendiente { background: rgba(212, 137, 74, 0.12); color: #8C5020; }
+
+  .cita-servicio {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--espresso);
+  }
+  .cita-fecha-hora {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.88rem;
+    color: var(--warm-gray);
+  }
+  .cita-nota {
+    font-size: 0.88rem;
+    color: var(--espresso-mid);
+    padding: 0.5rem 0.75rem;
+    background: var(--champagne-pale);
+    border-radius: 0.5rem;
+  }
+  .cita-acciones { margin-top: auto; padding-top: 0.5rem; }
+  .cita-no-editable {
+    font-size: 0.78rem;
+    color: var(--warm-gray);
+    margin: 0.5rem 0 0;
+  }
+</style>
+{% endblock %}

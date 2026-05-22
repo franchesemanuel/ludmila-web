@@ -1,14 +1,21 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
+import logging
+import re
+import time
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
-import re
+from django.core.cache import cache
+from django.db import models
+from django.shortcuts import render, redirect
+
+logger = logging.getLogger("ludmila.security")
+
+MAX_ATTEMPTS = 5
+LOCKOUT_SECONDS = 15 * 60  # 15 minutos
 
 
-# =========================
-# VALIDACIÓN PASSWORD
-# =========================
 def validar_password(password):
     if len(password) < 8:
         return "La contraseña debe tener al menos 8 caracteres."
@@ -19,20 +26,16 @@ def validar_password(password):
     return None
 
 
-# =========================
-# REGISTRO
-# =========================
 def register_view(request):
-    # 🧹 limpiar mensajes arrastrados
     storage = get_messages(request)
     for _ in storage:
         pass
 
     if request.method == "POST":
-        nombre = request.POST.get("nombre")
-        telefono = request.POST.get("telefono")
-        password1 = request.POST.get("password1")
-        password2 = request.POST.get("password2")
+        nombre = request.POST.get("nombre", "").strip()
+        telefono = request.POST.get("telefono", "").strip()
+        password1 = request.POST.get("password1", "")
+        password2 = request.POST.get("password2", "")
 
         if not re.match(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$", nombre):
             messages.error(request, "El nombre solo puede contener letras.")
@@ -51,70 +54,90 @@ def register_view(request):
             messages.error(request, "Las contraseñas no coinciden.")
             return redirect("register")
 
+        # Timing-neutral: no revelar si el teléfono ya existe
         if User.objects.filter(username=telefono).exists():
-            messages.error(request, "Ya existe una cuenta con ese teléfono.")
-            return redirect("register")
+            messages.success(request, "Cuenta creada. Ya podés iniciar sesión.")
+            return redirect("login")
 
         User.objects.create_user(
             username=telefono,
             password=password1,
-            first_name=nombre
+            first_name=nombre,
         )
 
-        messages.success(request, "Cuenta creada correctamente. Ya podés iniciar sesión.")
+        logger.info("Nuevo usuario registrado: %s", telefono)
+        messages.success(request, "Cuenta creada. Ya podés iniciar sesión.")
         return redirect("login")
 
     return render(request, "users/register.html")
 
 
-# =========================
-# LOGIN
-# =========================
+def _get_ip(request):
+    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    return xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR", "")
+
+
 def login_view(request):
-    # 🧹 limpiar mensajes viejos
     storage = get_messages(request)
     for _ in storage:
         pass
 
     if request.method == "POST":
-        telefono = request.POST.get("telefono")
-        password = request.POST.get("password")
+        telefono = request.POST.get("telefono", "").strip()
+        password = request.POST.get("password", "")
+        ip = _get_ip(request)
+        cache_key = f"login_attempts:{ip}"
+
+        attempts = cache.get(cache_key, 0)
+        if attempts >= MAX_ATTEMPTS:
+            logger.warning("Login bloqueado por rate-limit: IP=%s telefono=%s", ip, telefono)
+            messages.error(request, "Demasiados intentos fallidos. Intentá de nuevo en 15 minutos.")
+            return redirect("login")
 
         user = authenticate(request, username=telefono, password=password)
 
         if user:
+            cache.delete(cache_key)
             login(request, user)
-            return redirect("dashboard")
+            logger.info("Login exitoso: usuario=%s IP=%s", telefono, ip)
+            return redirect("home")
 
+        cache.set(cache_key, attempts + 1, LOCKOUT_SECONDS)
+        logger.warning("Login fallido: telefono=%s IP=%s intentos=%d", telefono, ip, attempts + 1)
         messages.error(request, "Teléfono o contraseña incorrectos.")
         return redirect("login")
 
     return render(request, "users/login.html")
 
 
-# =========================
-# LOGOUT
-# =========================
 def logout_view(request):
+    logger.info("Logout: usuario=%s", request.user)
     logout(request)
     return redirect("home")
 
 
-# =========================
-# DASHBOARD
-# =========================
-def dashboard_view(request):
+def mis_citas_view(request):
     if not request.user.is_authenticated:
         return redirect("login")
 
     from reservas.models import Turno
+    from django.utils import timezone
 
-    turnos = Turno.objects.filter(
-        telefono=request.user.username
+    hoy = timezone.localdate()
+
+    proximas = Turno.objects.filter(
+        usuario=request.user,
+        cancelado=False,
+        fecha__gte=hoy,
     ).order_by("fecha", "hora")
 
-    return render(
-        request,
-        "users/dashboard.html",
-        {"turnos": turnos}
-    )
+    pasadas = Turno.objects.filter(
+        usuario=request.user,
+    ).filter(
+        models.Q(fecha__lt=hoy) | models.Q(cancelado=True)
+    ).order_by("-fecha", "-hora")
+
+    return render(request, "users/mis_citas.html", {
+        "proximas": proximas,
+        "pasadas": pasadas,
+    })
