@@ -11,7 +11,7 @@
     <div class="section-header text-center mb-5">
       <p class="section-eyebrow">Consejos y novedades</p>
       <h1 class="section-title">Blog</h1>
-      <p class="section-subtitle">Tips de belleza, cuidados y novedades del mundo de las pestanas y cejas.</p>
+      <p class="section-subtitle">Tips de belleza, cuidados y novedades del mundo de las pestañas y cejas.</p>
     </div>
 
     {% if posts %}
@@ -38,7 +38,7 @@
                 <h5 class="blog-card-title">{{ post.titulo }}</h5>
                 <p class="blog-card-excerpt flex-grow-1">{{ post.resumen|truncatewords:20 }}</p>
                 <a href="{% url 'blog:detail' post.slug %}" class="btn btn-outline-accent btn-sm mt-auto align-self-start">
-                  Leer mas <i class="fa-solid fa-arrow-right ms-1"></i>
+                  Leer más <i class="fa-solid fa-arrow-right ms-1"></i>
                 </a>
               </div>
 
@@ -49,7 +49,7 @@
     {% else %}
       <div class="text-center py-5">
         <i class="fa-solid fa-feather-pointed mb-3 d-block" style="font-size: 3rem; color: var(--color-primary);"></i>
-        <p class="text-muted">Todavia no hay articulos publicados. Vuelve pronto.</p>
+        <p class="text-muted">Todavía no hay artículos publicados. Volvé pronto.</p>
         <a href="{% url 'home' %}" class="btn btn-primary-gold mt-2">Volver al inicio</a>
       </div>
     {% endif %}
