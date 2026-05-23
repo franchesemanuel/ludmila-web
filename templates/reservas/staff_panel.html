@@ -1,0 +1,738 @@
+{% extends "base.html" %}
+
+{% block title %}Panel — {{ fecha|date:"d/m/Y" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Tabs de navegación -->
+  <ul class="nav nav-tabs mb-4 flex-wrap" id="staffTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <a class="nav-link {% if tab == 'agenda' %}active{% endif %}"
+         href="?tab=agenda&fecha={{ fecha|date:'Y-m-d' }}">
+        Agenda
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link {% if tab == 'clientes' %}active{% endif %}"
+         href="?tab=clientes">
+        Clientes
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link {% if tab == 'servicios' %}active{% endif %}"
+         href="?tab=servicios">
+        Servicios
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link {% if tab == 'horarios' %}active{% endif %}"
+         href="?tab=horarios">
+        Horarios
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link {% if tab == 'dias' %}active{% endif %}"
+         href="?tab=dias">
+        Días bloqueados
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link {% if tab == 'config' %}active{% endif %}"
+         href="?tab=config">
+        Configuración
+      </a>
+    </li>
+  </ul>
+
+  <!-- ══════════════════════════════════════════════════════ TAB: AGENDA -->
+  {% if tab == 'agenda' %}
+
+  <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
+    <a href="?tab=agenda&fecha={{ prev_fecha|date:'Y-m-d' }}"
+       class="btn btn-outline-secondary btn-sm">&#8592; Anterior</a>
+    <a href="?tab=agenda&fecha={{ hoy|date:'Y-m-d' }}"
+       class="btn btn-sm text-white" style="background:var(--color-primary,#b8860b);">Hoy</a>
+    <a href="?tab=agenda&fecha={{ next_fecha|date:'Y-m-d' }}"
+       class="btn btn-outline-secondary btn-sm">Siguiente &#8594;</a>
+    <form method="get" class="d-flex gap-2 align-items-center ms-2">
+      <input type="hidden" name="tab" value="agenda">
+      <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}"
+             class="form-control form-control-sm" style="width:160px;">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Ir</button>
+    </form>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-3">
+        <div style="font-size:2rem;font-weight:700;color:var(--color-primary,#b8860b);">{{ total }}</div>
+        <div class="text-muted small text-uppercase">Total</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-3">
+        <div style="font-size:2rem;font-weight:700;color:#198754;">{{ confirmadas }}</div>
+        <div class="text-muted small text-uppercase">Confirmadas</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-3">
+        <div style="font-size:2rem;font-weight:700;color:#fd7e14;">{{ pendientes }}</div>
+        <div class="text-muted small text-uppercase">Pendientes</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-3">
+        <div style="font-size:2rem;font-weight:700;color:#dc3545;">{{ canceladas }}</div>
+        <div class="text-muted small text-uppercase">Canceladas</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="p-3 rounded-top text-white" style="background:var(--color-primary,#b8860b);">
+    <h5 class="mb-0 fw-semibold">{{ fecha|date:"l d \d\e F \d\e Y" }}</h5>
+    <small style="opacity:.8;">{{ total }} cita{{ total|pluralize:"s" }}</small>
+  </div>
+
+  {% if turnos %}
+  <div class="card border-0 shadow-sm rounded-top-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="small text-muted text-uppercase">Hora</th>
+            <th class="small text-muted text-uppercase">Cliente</th>
+            <th class="small text-muted text-uppercase">Teléfono</th>
+            <th class="small text-muted text-uppercase">Servicio</th>
+            <th class="small text-muted text-uppercase">Estado</th>
+            <th class="small text-muted text-uppercase">Nota</th>
+            <th class="small text-muted text-uppercase">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for turno in turnos %}
+          <tr>
+            <td>
+              <span class="badge rounded-pill px-3 py-2 text-white fw-semibold"
+                    style="background:var(--color-primary,#b8860b);font-size:.82rem;">
+                {{ turno.hora|time:"H:i" }}
+              </span>
+            </td>
+            <td>
+              {% if turno.usuario %}
+                <a href="{% url 'staff_cliente_detalle' turno.usuario.pk %}" class="fw-semibold text-decoration-none">
+                  {{ turno.nombre_completo }}
+                </a>
+                <br><small class="text-muted">{{ turno.usuario.username }}</small>
+              {% else %}
+                <strong>{{ turno.nombre_completo }}</strong>
+              {% endif %}
+            </td>
+            <td class="text-muted">{{ turno.telefono }}</td>
+            <td>
+              {% if turno.servicio %}
+                {{ turno.servicio.nombre }}
+                {% if turno.servicio.duracion_minutos %}
+                  <br><small class="text-muted">{{ turno.servicio.duracion_minutos }} min</small>
+                {% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if turno.cancelado %}
+                <span class="badge rounded-pill" style="background:#f8d7da;color:#58151c;">Cancelada</span>
+              {% elif turno.aceptado %}
+                <span class="badge rounded-pill" style="background:#d1e7dd;color:#0a3622;">✓ Confirmada</span>
+              {% else %}
+                <span class="badge rounded-pill" style="background:#fff3cd;color:#664d03;">Pendiente</span>
+              {% endif %}
+            </td>
+            <td class="text-muted fst-italic small" style="max-width:140px;">
+              {{ turno.comentario|default:"—" }}
+            </td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                {% if not turno.cancelado and not turno.aceptado %}
+                <form method="post" action="{% url 'staff_panel' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="confirmar">
+                  <input type="hidden" name="turno_id" value="{{ turno.pk }}">
+                  <input type="hidden" name="back" value="?tab=agenda&fecha={{ fecha|date:'Y-m-d' }}">
+                  <button class="btn btn-sm py-1 px-2"
+                          style="background:#d1e7dd;color:#0a3622;border:none;font-size:.78rem;font-weight:600;">
+                    ✓ Confirmar
+                  </button>
+                </form>
+                {% endif %}
+                {% if not turno.cancelado %}
+                <form method="post" action="{% url 'staff_panel' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="cancelar">
+                  <input type="hidden" name="turno_id" value="{{ turno.pk }}">
+                  <input type="hidden" name="back" value="?tab=agenda&fecha={{ fecha|date:'Y-m-d' }}">
+                  <button class="btn btn-sm py-1 px-2"
+                          style="background:#f8d7da;color:#58151c;border:none;font-size:.78rem;font-weight:600;">
+                    ✕ Cancelar
+                  </button>
+                </form>
+                {% endif %}
+                {% if turno.cancelado or turno.aceptado %}
+                <form method="post" action="{% url 'staff_panel' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="pendiente">
+                  <input type="hidden" name="turno_id" value="{{ turno.pk }}">
+                  <input type="hidden" name="back" value="?tab=agenda&fecha={{ fecha|date:'Y-m-d' }}">
+                  <button class="btn btn-sm py-1 px-2"
+                          style="background:#fff3cd;color:#664d03;border:none;font-size:.78rem;font-weight:600;">
+                    ↺ Pendiente
+                  </button>
+                </form>
+                {% endif %}
+                <!-- Nota -->
+                <button class="btn btn-sm btn-outline-secondary py-1 px-2"
+                        style="font-size:.78rem;"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#nota{{ turno.pk }}">
+                  📝 Nota
+                </button>
+              </div>
+              <!-- Formulario nota colapsable -->
+              <div class="collapse mt-2" id="nota{{ turno.pk }}">
+                <form method="post" action="{% url 'staff_panel' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="guardar_nota">
+                  <input type="hidden" name="turno_id" value="{{ turno.pk }}">
+                  <input type="hidden" name="back" value="?tab=agenda&fecha={{ fecha|date:'Y-m-d' }}">
+                  <textarea name="nota" class="form-control form-control-sm mb-1" rows="2"
+                            placeholder="Nota para el cliente…"
+                            style="font-size:.8rem;">{{ turno.comentario_ludmila }}</textarea>
+                  <button type="submit" class="btn btn-sm text-white w-100"
+                          style="background:var(--color-primary,#b8860b);font-size:.78rem;">
+                    Guardar nota
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card border-0 shadow-sm rounded-top-0 text-center py-5">
+    <div style="font-size:2.5rem;">📭</div>
+    <p class="text-muted mt-2 mb-0">No hay citas para este día.</p>
+  </div>
+  {% endif %}
+
+
+  <!-- ══════════════════════════════════════════════════ TAB: HORARIOS -->
+  {% elif tab == 'horarios' %}
+
+  <div class="row g-4">
+    <!-- Lista de bloques existentes -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+          Bloques horarios configurados
+        </div>
+        <div class="card-body p-0">
+          {% if bloques %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="small text-muted text-uppercase">Día</th>
+                  <th class="small text-muted text-uppercase">Desde</th>
+                  <th class="small text-muted text-uppercase">Hasta</th>
+                  <th class="small text-muted text-uppercase">Estado</th>
+                  <th class="small text-muted text-uppercase">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for bloque in bloques %}
+                <tr>
+                  <td class="fw-semibold">{{ bloque.get_dia_display }}</td>
+                  <td>{{ bloque.hora_inicio|time:"H:i" }}</td>
+                  <td>{{ bloque.hora_fin|time:"H:i" }}</td>
+                  <td>
+                    {% if bloque.activo %}
+                      <span class="badge rounded-pill" style="background:#d1e7dd;color:#0a3622;">Activo</span>
+                    {% else %}
+                      <span class="badge rounded-pill" style="background:#e2e3e5;color:#6c757d;">Inactivo</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-sm btn-outline-secondary py-1 px-2"
+                              style="font-size:.78rem;"
+                              data-bs-toggle="modal"
+                              data-bs-target="#modalEditarBloque{{ bloque.pk }}">
+                        Editar
+                      </button>
+                      <form method="post" action="{% url 'staff_panel' %}"
+                            onsubmit="return confirm('¿Eliminar este bloque?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="accion" value="eliminar_bloque">
+                        <input type="hidden" name="bloque_id" value="{{ bloque.pk }}">
+                        <input type="hidden" name="back" value="?tab=horarios">
+                        <button class="btn btn-sm py-1 px-2"
+                                style="background:#f8d7da;color:#58151c;border:none;font-size:.78rem;">
+                          Eliminar
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted">No hay bloques horarios configurados.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Agregar nuevo bloque -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header fw-semibold bg-light">Agregar bloque</div>
+        <div class="card-body">
+          <form method="post" action="{% url 'staff_panel' %}">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="crear_bloque">
+            <input type="hidden" name="back" value="?tab=horarios">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Día</label>
+              <select name="dia" class="form-select form-select-sm" required>
+                {% for idx, nombre in dias_semana %}
+                <option value="{{ idx }}">{{ nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Desde</label>
+              <input type="time" name="hora_inicio" class="form-control form-control-sm" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Hasta</label>
+              <input type="time" name="hora_fin" class="form-control form-control-sm" required>
+            </div>
+            <button type="submit" class="btn btn-sm w-100 text-white"
+                    style="background:var(--color-primary,#b8860b);">
+              Agregar bloque
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modales de edición por bloque -->
+  {% for bloque in bloques %}
+  <div class="modal fade" id="modalEditarBloque{{ bloque.pk }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar bloque — {{ bloque.get_dia_display }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'staff_panel' %}">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="editar_bloque">
+          <input type="hidden" name="bloque_id" value="{{ bloque.pk }}">
+          <input type="hidden" name="back" value="?tab=horarios">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Día</label>
+              <select name="dia" class="form-select form-select-sm" required>
+                {% for idx, nombre in dias_semana %}
+                <option value="{{ idx }}" {% if bloque.dia == idx %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Desde</label>
+              <input type="time" name="hora_inicio" class="form-control form-control-sm"
+                     value="{{ bloque.hora_inicio|time:'H:i' }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Hasta</label>
+              <input type="time" name="hora_fin" class="form-control form-control-sm"
+                     value="{{ bloque.hora_fin|time:'H:i' }}" required>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="activo" id="activo{{ bloque.pk }}"
+                     {% if bloque.activo %}checked{% endif %}>
+              <label class="form-check-label small" for="activo{{ bloque.pk }}">Bloque activo</label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-sm text-white"
+                    style="background:var(--color-primary,#b8860b);">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+
+  <!-- ════════════════════════════════════════════════ TAB: DÍAS BLOQUEADOS -->
+  {% elif tab == 'dias' %}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+          Días sin atención (próximos)
+        </div>
+        <div class="card-body p-0">
+          {% if dias_bloqueados %}
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th class="small text-muted text-uppercase ps-3">Fecha</th>
+                <th class="small text-muted text-uppercase">Motivo</th>
+                <th class="small text-muted text-uppercase">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for dia in dias_bloqueados %}
+              <tr>
+                <td class="ps-3 fw-semibold">{{ dia.fecha|date:"d/m/Y" }}</td>
+                <td class="text-muted">{{ dia.motivo|default:"—" }}</td>
+                <td>
+                  <form method="post" action="{% url 'staff_panel' %}"
+                        onsubmit="return confirm('¿Desbloquear este día?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="desbloquear_dia">
+                    <input type="hidden" name="dia_id" value="{{ dia.pk }}">
+                    <input type="hidden" name="back" value="?tab=dias">
+                    <button class="btn btn-sm py-1 px-2"
+                            style="background:#f8d7da;color:#58151c;border:none;font-size:.78rem;">
+                      Desbloquear
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="text-center py-4 text-muted">No hay días bloqueados próximos.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header fw-semibold bg-light">Bloquear un día</div>
+        <div class="card-body">
+          <form method="post" action="{% url 'staff_panel' %}">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="bloquear_dia">
+            <input type="hidden" name="back" value="?tab=dias">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Fecha</label>
+              <input type="date" name="fecha_bloqueo" class="form-control form-control-sm"
+                     min="{{ hoy|date:'Y-m-d' }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Motivo (opcional)</label>
+              <input type="text" name="motivo" class="form-control form-control-sm"
+                     placeholder="Ej: feriado, vacaciones…" maxlength="200">
+            </div>
+            <button type="submit" class="btn btn-sm w-100 text-white"
+                    style="background:#dc3545;">
+              Bloquear día
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════ TAB: CONFIGURACIÓN -->
+  {% elif tab == 'config' %}
+
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+          Configuración global
+        </div>
+        <div class="card-body">
+          <form method="post" action="{% url 'staff_panel' %}">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="guardar_config">
+            <input type="hidden" name="back" value="?tab=config">
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Intervalo entre turnos (minutos)</label>
+              <input type="number" name="intervalo_minutos"
+                     class="form-control"
+                     value="{{ config.intervalo_minutos|default:30 }}"
+                     min="5" max="240" required>
+              <div class="form-text">
+                Define cada cuántos minutos se ofrece un turno disponible.<br>
+                Ejemplos: 30 min → turnos a las 9:00, 9:30, 10:00…
+              </div>
+            </div>
+            <button type="submit" class="btn w-100 text-white"
+                    style="background:var(--color-primary,#b8860b);">
+              Guardar configuración
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ TAB: CLIENTES -->
+  {% elif tab == 'clientes' %}
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+      Clientes registrados
+    </div>
+    <div class="card-body p-0">
+      {% if clientes %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th class="small text-muted text-uppercase ps-3">Nombre</th>
+              <th class="small text-muted text-uppercase">Teléfono</th>
+              <th class="small text-muted text-uppercase">Citas activas</th>
+              <th class="small text-muted text-uppercase">Registrado</th>
+              <th class="small text-muted text-uppercase">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in clientes %}
+            <tr>
+              <td class="ps-3 fw-semibold">{{ c.first_name|default:c.username }}</td>
+              <td class="text-muted">{{ c.username }}</td>
+              <td>{{ c.turnos.count }}</td>
+              <td class="text-muted small">{{ c.date_joined|date:"d/m/Y" }}</td>
+              <td>
+                <a href="{% url 'staff_cliente_detalle' c.pk %}"
+                   class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size:.78rem;">
+                  Ver ficha
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4 text-muted">No hay clientes registrados.</div>
+      {% endif %}
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════ TAB: SERVICIOS -->
+  {% elif tab == 'servicios' %}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+          Servicios
+        </div>
+        <div class="card-body p-0">
+          {% if servicios %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="small text-muted text-uppercase ps-3">Nombre</th>
+                  <th class="small text-muted text-uppercase">Categoría</th>
+                  <th class="small text-muted text-uppercase">Duración</th>
+                  <th class="small text-muted text-uppercase">Precio</th>
+                  <th class="small text-muted text-uppercase">Estado</th>
+                  <th class="small text-muted text-uppercase">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in servicios %}
+                <tr>
+                  <td class="ps-3 fw-semibold">{{ s.nombre }}</td>
+                  <td class="text-muted small">{{ s.get_categoria_display }}</td>
+                  <td class="text-muted small">{{ s.duracion_minutos }} min</td>
+                  <td class="text-muted small">{% if s.precio %}${{ s.precio }}{% else %}—{% endif %}</td>
+                  <td>
+                    {% if s.activo %}
+                      <span class="badge rounded-pill" style="background:#d1e7dd;color:#0a3622;">Activo</span>
+                    {% else %}
+                      <span class="badge rounded-pill" style="background:#e2e3e5;color:#6c757d;">Inactivo</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size:.78rem;"
+                              data-bs-toggle="modal" data-bs-target="#modalEditarServicio{{ s.pk }}">
+                        Editar
+                      </button>
+                      <form method="post" action="{% url 'staff_panel' %}"
+                            onsubmit="return confirm('¿Eliminar este servicio?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="accion" value="eliminar_servicio">
+                        <input type="hidden" name="servicio_id" value="{{ s.pk }}">
+                        <input type="hidden" name="back" value="?tab=servicios">
+                        <button class="btn btn-sm py-1 px-2"
+                                style="background:#f8d7da;color:#58151c;border:none;font-size:.78rem;">
+                          Eliminar
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted">No hay servicios cargados.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Agregar servicio -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header fw-semibold bg-light">Nuevo servicio</div>
+        <div class="card-body">
+          <form method="post" action="{% url 'staff_panel' %}">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="crear_servicio">
+            <input type="hidden" name="back" value="?tab=servicios">
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Nombre</label>
+              <input type="text" name="nombre" class="form-control form-control-sm" required maxlength="100">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Categoría</label>
+              <select name="categoria" class="form-select form-select-sm">
+                {% for val, lbl in categorias %}<option value="{{ val }}">{{ lbl }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Descripción</label>
+              <textarea name="descripcion" class="form-control form-control-sm" rows="2"></textarea>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Duración (min)</label>
+                <input type="number" name="duracion_minutos" class="form-control form-control-sm" value="60" min="5">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Precio ($)</label>
+                <input type="number" name="precio" class="form-control form-control-sm" step="0.01" min="0" placeholder="—">
+              </div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Orden</label>
+                <input type="number" name="orden" class="form-control form-control-sm" value="0" min="0">
+              </div>
+              <div class="col-6 d-flex align-items-end">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="activo" id="nuevoActivo" checked>
+                  <label class="form-check-label small" for="nuevoActivo">Activo</label>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-sm w-100 text-white"
+                    style="background:var(--color-primary,#b8860b);">
+              Agregar servicio
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modales de edición de servicios -->
+  {% for s in servicios %}
+  <div class="modal fade" id="modalEditarServicio{{ s.pk }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar — {{ s.nombre }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'staff_panel' %}">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="editar_servicio">
+          <input type="hidden" name="servicio_id" value="{{ s.pk }}">
+          <input type="hidden" name="back" value="?tab=servicios">
+          <div class="modal-body">
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Nombre</label>
+              <input type="text" name="nombre" class="form-control form-control-sm"
+                     value="{{ s.nombre }}" required maxlength="100">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Categoría</label>
+              <select name="categoria" class="form-select form-select-sm">
+                {% for val, lbl in categorias %}
+                <option value="{{ val }}" {% if s.categoria == val %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Descripción</label>
+              <textarea name="descripcion" class="form-control form-control-sm" rows="2">{{ s.descripcion }}</textarea>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Duración (min)</label>
+                <input type="number" name="duracion_minutos" class="form-control form-control-sm"
+                       value="{{ s.duracion_minutos }}" min="5">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Precio ($)</label>
+                <input type="number" name="precio" class="form-control form-control-sm"
+                       step="0.01" min="0" value="{{ s.precio|default:'' }}" placeholder="—">
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Orden</label>
+                <input type="number" name="orden" class="form-control form-control-sm"
+                       value="{{ s.orden }}" min="0">
+              </div>
+              <div class="col-6 d-flex align-items-end">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="activo"
+                         id="activo_s{{ s.pk }}" {% if s.activo %}checked{% endif %}>
+                  <label class="form-check-label small" for="activo_s{{ s.pk }}">Activo</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-sm text-white"
+                    style="background:var(--color-primary,#b8860b);">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% endif %}
+
+</div>
+{% endblock %}

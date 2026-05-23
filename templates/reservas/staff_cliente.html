@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Ficha — {{ cliente.first_name|default:cliente.username }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <a href="{% url 'staff_panel' %}?tab=clientes" class="btn btn-sm btn-outline-secondary mb-3">
+    &#8592; Volver a clientes
+  </a>
+
+  <div class="row g-4">
+
+    <!-- ── Datos del cliente ── -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+          Ficha del cliente
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0" style="font-size:.9rem;">
+            <dt class="col-5 text-muted">Nombre</dt>
+            <dd class="col-7 fw-semibold">{{ cliente.first_name|default:"—" }}</dd>
+
+            <dt class="col-5 text-muted">Teléfono</dt>
+            <dd class="col-7">{{ cliente.username }}</dd>
+
+            <dt class="col-5 text-muted">Email</dt>
+            <dd class="col-7">{{ cliente.email|default:"—" }}</dd>
+
+            <dt class="col-5 text-muted">Registrado</dt>
+            <dd class="col-7">{{ cliente.date_joined|date:"d/m/Y" }}</dd>
+
+            <dt class="col-5 text-muted">Citas</dt>
+            <dd class="col-7">{{ turnos.count }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Chat / Mensajes ── -->
+    <div class="col-md-8">
+      <div class="card border-0 shadow-sm h-100 d-flex flex-column">
+        <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+          Mensajes
+        </div>
+        <div class="card-body flex-grow-1 p-3" style="max-height:320px;overflow-y:auto;" id="chatBox">
+          {% if mensajes %}
+            {% for m in mensajes %}
+            <div class="mb-2 d-flex {% if m.es_staff %}justify-content-end{% endif %}">
+              <div class="px-3 py-2 rounded-3" style="max-width:80%;font-size:.88rem;
+                   {% if m.es_staff %}background:var(--color-primary,#b8860b);color:#fff;{% else %}background:#f1f1f1;color:#333;{% endif %}">
+                {{ m.texto }}
+                <div class="mt-1" style="font-size:.7rem;opacity:.65;">
+                  {{ m.creado|date:"d/m H:i" }}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted text-center mt-3">Sin mensajes aún.</p>
+          {% endif %}
+        </div>
+        <div class="card-footer bg-white border-top">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="enviar_mensaje">
+            <div class="input-group">
+              <input type="text" name="mensaje" class="form-control form-control-sm"
+                     placeholder="Escribí un mensaje…" required maxlength="1000">
+              <button type="submit" class="btn btn-sm text-white px-3"
+                      style="background:var(--color-primary,#b8860b);">
+                Enviar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Historial de citas ── -->
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-header fw-semibold" style="background:var(--color-primary,#b8860b);color:#fff;">
+      Historial de citas
+    </div>
+    {% if turnos %}
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th class="small text-muted text-uppercase ps-3">Fecha</th>
+              <th class="small text-muted text-uppercase">Hora</th>
+              <th class="small text-muted text-uppercase">Servicio</th>
+              <th class="small text-muted text-uppercase">Estado</th>
+              <th class="small text-muted text-uppercase">Nota cliente</th>
+              <th class="small text-muted text-uppercase">Nota interna</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in turnos %}
+            <tr>
+              <td class="ps-3 fw-semibold">{{ t.fecha|date:"d/m/Y" }}</td>
+              <td>{{ t.hora|time:"H:i" }}</td>
+              <td>{{ t.servicio.nombre|default:"—" }}</td>
+              <td>
+                {% if t.cancelado %}
+                  <span class="badge rounded-pill" style="background:#f8d7da;color:#58151c;">Cancelada</span>
+                {% elif t.aceptado %}
+                  <span class="badge rounded-pill" style="background:#d1e7dd;color:#0a3622;">Confirmada</span>
+                {% else %}
+                  <span class="badge rounded-pill" style="background:#fff3cd;color:#664d03;">Pendiente</span>
+                {% endif %}
+              </td>
+              <td class="text-muted fst-italic small">{{ t.comentario|default:"—" }}</td>
+              <td>
+                <!-- Nota interna editable -->
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                        style="font-size:.75rem;"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#nota_c{{ t.pk }}">
+                  {% if t.comentario_ludmila %}✏️ Editar nota{% else %}📝 Agregar{% endif %}
+                </button>
+                {% if t.comentario_ludmila %}
+                  <div class="text-muted small fst-italic mt-1">{{ t.comentario_ludmila }}</div>
+                {% endif %}
+                <div class="collapse mt-1" id="nota_c{{ t.pk }}">
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="guardar_nota">
+                    <input type="hidden" name="turno_id" value="{{ t.pk }}">
+                    <textarea name="nota" class="form-control form-control-sm mb-1" rows="2"
+                              style="font-size:.78rem;">{{ t.comentario_ludmila }}</textarea>
+                    <button type="submit" class="btn btn-sm text-white w-100"
+                            style="background:var(--color-primary,#b8860b);font-size:.75rem;">
+                      Guardar
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="card-body text-center text-muted py-4">Este cliente no tiene citas.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  // Scroll automático al final del chat
+  var box = document.getElementById('chatBox');
+  if (box) box.scrollTop = box.scrollHeight;
+</script>
+{% endblock %}

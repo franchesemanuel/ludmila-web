@@ -166,6 +166,42 @@
         </div>
         {% endif %}
 
+        <!-- ===== MENSAJES ===== -->
+        {% if mensajes %}
+        <div class="card border-0 shadow-sm rounded-4 mt-4">
+          <div class="card-body p-4">
+            <h5 class="mb-3" style="font-family: var(--font-heading); color:var(--color-accent);">
+              <i class="fa-regular fa-comment-dots me-2" style="color:var(--color-primary);"></i>
+              Mensajes
+            </h5>
+            <!-- Historial -->
+            <div class="mb-3 p-3 rounded-3" style="background:#fafafa;max-height:260px;overflow-y:auto;" id="chatBox">
+              {% for m in mensajes %}
+              <div class="mb-2 d-flex {% if m.es_staff %}justify-content-end{% endif %}">
+                <div class="px-3 py-2 rounded-3"
+                     style="max-width:80%;font-size:.88rem;
+                     {% if m.es_staff %}background:var(--color-primary,#b8860b);color:#fff;{% else %}background:#e9ecef;color:#333;{% endif %}">
+                  {{ m.texto }}
+                  <div style="font-size:.7rem;opacity:.6;margin-top:2px;">{{ m.creado|date:"d/m H:i" }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <!-- Responder -->
+            <form method="post" action="{% url 'mis_citas' %}">
+              {% csrf_token %}
+              <div class="input-group">
+                <input type="text" name="mensaje" class="form-control form-control-sm"
+                       placeholder="Escribí un mensaje…" required maxlength="1000">
+                <button type="submit" class="btn btn-sm text-white px-3"
+                        style="background:var(--color-primary,#b8860b);">Enviar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <script>var b=document.getElementById('chatBox');if(b)b.scrollTop=b.scrollHeight;</script>
+        {% endif %}
+
       </div>
     </div>
   </div>

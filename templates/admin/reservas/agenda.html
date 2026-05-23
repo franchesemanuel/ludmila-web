@@ -1,0 +1,222 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Agenda – {{ fecha }}{% endblock %}
+
+{% block content %}
+
+<style>
+  .agenda-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .agenda-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 18px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #444;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background 0.15s;
+  }
+  .agenda-nav a:hover { background: #f5f5f5; }
+  .agenda-nav a.hoy-btn {
+    background: #417690;
+    color: #fff;
+    border-color: #417690;
+  }
+  .agenda-nav a.hoy-btn:hover { background: #2c5167; }
+  .agenda-fecha-input {
+    padding: 7px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.85rem;
+  }
+
+  .agenda-header {
+    background: #417690;
+    color: #fff;
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+  }
+  .agenda-header h2 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+  .agenda-header p  { margin: 4px 0 0; opacity: 0.75; font-size: 0.85rem; }
+
+  .agenda-table-wrap {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  .agenda-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .agenda-table th {
+    background: #f8f8f8;
+    padding: 0.7rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #666;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: left;
+  }
+  .agenda-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.88rem;
+    vertical-align: middle;
+  }
+  .agenda-table tr:last-child td { border-bottom: none; }
+  .agenda-table tr:hover td { background: #fafafa; }
+
+  .hora-chip {
+    background: #417690;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-confirmada { background: #d1e7dd; color: #0a3622; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+  .badge-pendiente  { background: #fff3cd; color: #664d03; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+  .badge-cancelada  { background: #f8d7da; color: #58151c; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+
+  .empty-agenda {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #888;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+  }
+  .empty-agenda span { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+
+  .resumen-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .resumen-card {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    min-width: 140px;
+    text-align: center;
+  }
+  .resumen-card .num { font-size: 2rem; font-weight: 700; color: #417690; }
+  .resumen-card .lbl { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+</style>
+
+<!-- Navegación de fecha -->
+<div class="agenda-nav">
+  <a href="?fecha={{ prev_fecha|date:'Y-m-d' }}">&#8592; Anterior</a>
+  <a href="?fecha={{ hoy|date:'Y-m-d' }}" class="hoy-btn">Hoy</a>
+  <a href="?fecha={{ next_fecha|date:'Y-m-d' }}">Siguiente &#8594;</a>
+  <form method="get" style="display:flex;gap:8px;align-items:center;margin:0;">
+    <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="agenda-fecha-input">
+    <button type="submit" style="padding:7px 14px;background:#417690;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;">Ir</button>
+  </form>
+</div>
+
+<!-- Resumen del día -->
+<div class="resumen-row">
+  <div class="resumen-card">
+    <div class="num">{{ total }}</div>
+    <div class="lbl">Total</div>
+  </div>
+  <div class="resumen-card">
+    <div class="num" style="color:#198754;">{{ confirmadas }}</div>
+    <div class="lbl">Confirmadas</div>
+  </div>
+  <div class="resumen-card">
+    <div class="num" style="color:#fd7e14;">{{ pendientes }}</div>
+    <div class="lbl">Pendientes</div>
+  </div>
+</div>
+
+<!-- Tabla agenda -->
+<div class="agenda-header">
+  <h2>📅 {{ fecha|date:"l d \d\e F \d\e Y" }}</h2>
+  <p>{{ total }} cita{{ total|pluralize:"s" }} programada{{ total|pluralize:"s" }}</p>
+</div>
+
+{% if turnos %}
+  <div class="agenda-table-wrap">
+    <table class="agenda-table">
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th>Cliente</th>
+          <th>Teléfono</th>
+          <th>Servicio</th>
+          <th>Estado</th>
+          <th>Nota del cliente</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for turno in turnos %}
+        <tr>
+          <td><span class="hora-chip">{{ turno.hora|time:"H:i" }}</span></td>
+          <td>
+            <strong>{{ turno.nombre_completo }}</strong>
+            {% if turno.usuario %}
+              <br><small style="color:#888;">Usuario registrado</small>
+            {% endif %}
+          </td>
+          <td>{{ turno.telefono }}</td>
+          <td>
+            {% if turno.servicio %}
+              {{ turno.servicio.nombre }}
+              {% if turno.servicio.duracion_minutos %}
+                <br><small style="color:#aaa;">{{ turno.servicio.duracion_minutos }} min</small>
+              {% endif %}
+            {% else %}
+              <span style="color:#ccc;">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if turno.cancelado %}
+              <span class="badge-cancelada">Cancelada</span>
+            {% elif turno.aceptado %}
+              <span class="badge-confirmada">✓ Confirmada</span>
+            {% else %}
+              <span class="badge-pendiente">Pendiente</span>
+            {% endif %}
+          </td>
+          <td style="color:#666;font-style:italic;max-width:200px;">
+            {{ turno.comentario|default:"—" }}
+          </td>
+          <td>
+            <a href="{% url 'admin:reservas_turno_change' turno.pk %}"
+               style="font-size:0.8rem;color:#417690;">Ver / Editar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-agenda">
+    <span>📭</span>
+    No hay citas programadas para este día.
+  </div>
+{% endif %}
+
+{% endblock %}

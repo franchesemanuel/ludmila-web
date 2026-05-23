@@ -4,7 +4,7 @@ from django.urls import path
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.html import format_html
-from .models import Turno, ConfiguracionAgenda, DiaBloqueado, Servicio
+from .models import Turno, ConfiguracionAgenda, HorarioBloque, DiaBloqueado, Servicio
 
 
 # ─── Acciones en masa ─────────────────────────────────────────────────────────
@@ -153,28 +153,24 @@ class TurnoAdmin(admin.ModelAdmin):
         dias_semana = [lunes + datetime.timedelta(days=i) for i in range(7)]
 
         config = ConfiguracionAgenda.objects.first()
-        if config:
-            hora_inicio  = config.hora_inicio
-            hora_fin     = config.hora_fin
-            intervalo    = config.intervalo_minutos
-            dias_trabaja = [
-                config.trabaja_lunes, config.trabaja_martes, config.trabaja_miercoles,
-                config.trabaja_jueves, config.trabaja_viernes,
-                config.trabaja_sabado, config.trabaja_domingo,
-            ]
-        else:
-            hora_inicio  = datetime.time(9, 0)
-            hora_fin     = datetime.time(18, 0)
-            intervalo    = 30
-            dias_trabaja = [True, True, True, True, True, False, False]
+        intervalo = config.intervalo_minutos if config else 30
 
-        # Generar franjas horarias
-        slots = []
-        cur = datetime.datetime.combine(datetime.date.today(), hora_inicio)
-        fin = datetime.datetime.combine(datetime.date.today(), hora_fin)
-        while cur < fin:
-            slots.append(cur.time())
-            cur += datetime.timedelta(minutes=intervalo)
+        # Bloques horarios por día de semana
+        bloques_qs = HorarioBloque.objects.filter(activo=True)
+        bloques_por_dia = {}
+        for b in bloques_qs:
+            bloques_por_dia.setdefault(b.dia, []).append(b)
+
+        # Generar todos los slots únicos de la semana
+        all_slots: set = set()
+        for bloques in bloques_por_dia.values():
+            for b in bloques:
+                cur = datetime.datetime.combine(datetime.date.today(), b.hora_inicio)
+                fin = datetime.datetime.combine(datetime.date.today(), b.hora_fin)
+                while cur < fin:
+                    all_slots.add(cur.time())
+                    cur += datetime.timedelta(minutes=intervalo)
+        slots = sorted(all_slots)
 
         domingo = lunes + datetime.timedelta(days=6)
         turnos_semana = (
@@ -194,8 +190,10 @@ class TurnoAdmin(admin.ModelAdmin):
         grid = []
         for slot in slots:
             row = {"hora": slot, "celdas": []}
-            for i, dia in enumerate(dias_semana):
-                if not dias_trabaja[i] or dia in dias_bloqueados:
+            for dia in dias_semana:
+                bloques_dia = bloques_por_dia.get(dia.weekday(), [])
+                en_bloque = any(b.hora_inicio <= slot < b.hora_fin for b in bloques_dia)
+                if not bloques_dia or dia in dias_bloqueados or not en_bloque:
                     row["celdas"].append({"tipo": "cerrado", "turno": None, "dia": dia})
                 else:
                     turno = turno_map.get((dia, slot))
@@ -237,20 +235,30 @@ class TurnoAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
 
-# ─── Configuración de agenda ──────────────────────────────────────────────────
+# ─── Bloques horarios ─────────────────────────────────────────────────────────
+@admin.register(HorarioBloque)
+class HorarioBloqueAdmin(admin.ModelAdmin):
+    list_display  = ("dia_nombre", "hora_inicio", "hora_fin", "activo")
+    list_editable = ("hora_inicio", "hora_fin", "activo")
+    list_filter   = ("dia", "activo")
+    ordering      = ("dia", "hora_inicio")
+
+    def dia_nombre(self, obj):
+        return obj.get_dia_display()
+    dia_nombre.short_description = "Día"
+    dia_nombre.admin_order_field = "dia"
+
+
+# ─── Configuración global ─────────────────────────────────────────────────────
 @admin.register(ConfiguracionAgenda)
 class ConfiguracionAgendaAdmin(admin.ModelAdmin):
-    fieldsets = (
-        ("Horario de atención", {
-            "fields": ("hora_inicio", "hora_fin", "intervalo_minutos"),
-        }),
-        ("Días laborables", {
-            "fields": (
-                "trabaja_lunes", "trabaja_martes", "trabaja_miercoles",
-                "trabaja_jueves", "trabaja_viernes", "trabaja_sabado", "trabaja_domingo",
-            ),
-        }),
-    )
+    fields = ("intervalo_minutos",)
+
+    def has_add_permission(self, request):
+        return not ConfiguracionAgenda.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(DiaBloqueado)

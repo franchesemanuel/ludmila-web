@@ -26,24 +26,41 @@ solo_numeros = RegexValidator(
 # =====================
 
 class ConfiguracionAgenda(models.Model):
-    hora_inicio = models.TimeField(default=time(9, 0))
-    hora_fin = models.TimeField(default=time(18, 0))
-    intervalo_minutos = models.PositiveIntegerField(default=30)
-
-    trabaja_lunes = models.BooleanField(default=True)
-    trabaja_martes = models.BooleanField(default=True)
-    trabaja_miercoles = models.BooleanField(default=True)
-    trabaja_jueves = models.BooleanField(default=True)
-    trabaja_viernes = models.BooleanField(default=True)
-    trabaja_sabado = models.BooleanField(default=False)
-    trabaja_domingo = models.BooleanField(default=False)
+    intervalo_minutos = models.PositiveIntegerField(
+        default=30,
+        help_text="Minutos entre cada turno disponible (ej: 30, 45, 60)."
+    )
 
     def __str__(self):
-        return "Configuración de agenda"
+        return f"Configuración global — {self.intervalo_minutos} min por turno"
 
     class Meta:
-        verbose_name = "Configuración de agenda"
-        verbose_name_plural = "Configuración de agenda"
+        verbose_name = "Configuración global"
+        verbose_name_plural = "Configuración global"
+
+
+# =====================
+# BLOQUES HORARIOS
+# =====================
+
+class HorarioBloque(models.Model):
+    DIA_SEMANA = [
+        (0, 'Lunes'), (1, 'Martes'), (2, 'Miércoles'),
+        (3, 'Jueves'), (4, 'Viernes'), (5, 'Sábado'), (6, 'Domingo'),
+    ]
+    dia         = models.IntegerField(choices=DIA_SEMANA, verbose_name="Día")
+    hora_inicio = models.TimeField(verbose_name="Desde")
+    hora_fin    = models.TimeField(verbose_name="Hasta")
+    activo      = models.BooleanField(default=True)
+
+    def __str__(self):
+        estado = "" if self.activo else " [inactivo]"
+        return f"{self.get_dia_display()}: {self.hora_inicio.strftime('%H:%M')} – {self.hora_fin.strftime('%H:%M')}{estado}"
+
+    class Meta:
+        ordering = ['dia', 'hora_inicio']
+        verbose_name = 'Bloque horario'
+        verbose_name_plural = 'Bloques horarios'
 
 
 # =====================
@@ -155,19 +172,11 @@ class Turno(models.Model):
             if DiaBloqueado.objects.filter(fecha=fecha).exists():
                 raise ValidationError("Este día no está disponible.")
 
-            config = ConfiguracionAgenda.objects.first()
-            if not config:
-                raise ValidationError("La agenda no está configurada.")
-
-            dias = [
-                config.trabaja_lunes, config.trabaja_martes, config.trabaja_miercoles,
-                config.trabaja_jueves, config.trabaja_viernes,
-                config.trabaja_sabado, config.trabaja_domingo,
-            ]
-            if not dias[fecha.weekday()]:
+            bloques_dia = list(HorarioBloque.objects.filter(dia=fecha.weekday(), activo=True))
+            if not bloques_dia:
                 raise ValidationError("No se atiende ese día.")
 
-            if not (config.hora_inicio <= hora < config.hora_fin):
+            if not any(b.hora_inicio <= hora < b.hora_fin for b in bloques_dia):
                 raise ValidationError("Horario fuera de atención.")
 
         # ── Siempre: no superponer con otro turno activo ──────────────────────
@@ -203,3 +212,24 @@ class Turno(models.Model):
                 name="unique_turno_activo_por_slot",
             )
         ]
+
+
+# =====================
+# MENSAJES
+# =====================
+
+class MensajeCliente(models.Model):
+    usuario  = models.ForeignKey(User, on_delete=models.CASCADE, related_name="mensajes")
+    es_staff = models.BooleanField(default=False)
+    texto    = models.TextField(max_length=1000)
+    creado   = models.DateTimeField(auto_now_add=True)
+    leido    = models.BooleanField(default=False)
+
+    def __str__(self):
+        quien = "Staff" if self.es_staff else self.usuario.first_name or self.usuario.username
+        return f"{quien}: {self.texto[:60]}"
+
+    class Meta:
+        ordering = ["creado"]
+        verbose_name = "Mensaje"
+        verbose_name_plural = "Mensajes"

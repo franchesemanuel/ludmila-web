@@ -1,0 +1,288 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Resumen semanal – {{ lunes|date:"d/m" }} al {{ domingo|date:"d/m/Y" }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  /* ── Layout ─────────────────────────────────────────── */
+  .sem-wrap { max-width: 100%; overflow-x: auto; }
+
+  /* ── Navegación ─────────────────────────────────────── */
+  .sem-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .sem-nav a, .sem-nav button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 0.83rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #444;
+    transition: background 0.15s;
+  }
+  .sem-nav a:hover, .sem-nav button:hover { background: #f0f0f0; }
+  .sem-nav .btn-hoy  { background:#417690; color:#fff; border-color:#417690; }
+  .sem-nav .btn-hoy:hover { background:#2c5167; }
+  .sem-nav .btn-print { background:#6c757d; color:#fff; border-color:#6c757d; }
+  .sem-nav .btn-print:hover { background:#545b62; }
+  .sem-nav input[type=date] {
+    padding: 7px 10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    font-size:0.83rem;
+  }
+
+  /* ── Tarjetas resumen ───────────────────────────────── */
+  .sem-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.9rem 1.4rem;
+    min-width: 120px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .stat-card .num { font-size: 1.9rem; font-weight: 700; line-height: 1; }
+  .stat-card .lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-top: 4px; }
+  .stat-total   .num { color: #417690; }
+  .stat-conf    .num { color: #198754; }
+  .stat-pend    .num { color: #e07b00; }
+  .stat-cancel  .num { color: #dc3545; }
+
+  /* ── Tabla grilla ───────────────────────────────────── */
+  .sem-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    min-width: 700px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .sem-table th {
+    padding: 0.7rem 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 2px solid #e0e0e0;
+  }
+  .th-hora  { width: 64px; background: #f8f8f8; color: #666; }
+  .th-dia   { background: #f1f5f9; color: #444; }
+  .th-dia.es-hoy { background: #dbeafe; color: #1d4ed8; border-bottom-color: #3b82f6; }
+  .th-dia .dia-nombre { font-size: 0.8rem; font-weight: 700; }
+  .th-dia .dia-fecha  { font-size: 0.72rem; font-weight: 400; color: #888; margin-top: 1px; }
+  .th-dia.es-hoy .dia-fecha { color: #3b82f6; }
+
+  .sem-table td {
+    padding: 3px 4px;
+    border: 1px solid #f0f0f0;
+    vertical-align: top;
+    height: 52px;
+  }
+  .td-hora {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #888;
+    background: #f8f8f8;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  /* ── Celdas por estado ──────────────────────────────── */
+  .celda {
+    height: 100%;
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 0.73rem;
+    line-height: 1.3;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .celda-libre    { background: #f0fdf4; border: 1px dashed #bbf7d0; color: #9ca3af; }
+  .celda-cerrado  { background: #f3f4f6; border: 1px solid #e5e7eb; color: #d1d5db; }
+  .celda-pendiente {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    cursor: pointer;
+  }
+  .celda-confirmada {
+    background: #ecfdf5;
+    border: 1px solid #6ee7b7;
+    color: #065f46;
+  }
+  .celda-cancelada {
+    background: #fff1f2;
+    border: 1px solid #fda4af;
+    color: #9f1239;
+    opacity: 0.6;
+  }
+  .celda-nombre { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .celda-servicio { font-size: 0.68rem; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .celda-libre-txt { font-size: 0.68rem; opacity: 0.5; text-align: center; }
+  .celda a { color: inherit; text-decoration: none; }
+  .celda a:hover { text-decoration: underline; }
+
+  /* ── Leyenda ────────────────────────────────────────── */
+  .leyenda {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: #555;
+  }
+  .leyenda-item { display: flex; align-items: center; gap: 6px; }
+  .leyenda-dot  { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── Print ──────────────────────────────────────────── */
+  @media print {
+    #nav-sidebar, .sem-nav, .breadcrumbs, #header,
+    #user-tools, .leyenda, .messagelist { display: none !important; }
+    body, .sem-table { font-size: 10px !important; }
+    .celda { min-height: 36px !important; font-size: 0.65rem !important; }
+    .sem-table { box-shadow: none !important; }
+    .stat-card { border: 1px solid #ccc !important; }
+    h1 { font-size: 1rem !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Navegación de semana -->
+<div class="sem-nav">
+  <a href="?semana={{ prev_semana|date:'Y-m-d' }}">&#8592; Semana anterior</a>
+  <a href="." class="btn-hoy">Esta semana</a>
+  <a href="?semana={{ next_semana|date:'Y-m-d' }}">Semana siguiente &#8594;</a>
+  <form method="get" style="display:flex;gap:6px;align-items:center;margin:0;">
+    <input type="date" name="semana" value="{{ lunes|date:'Y-m-d' }}" title="Ir a la semana que contiene este lunes">
+    <button type="submit">Ir</button>
+  </form>
+  <button class="btn-print" onclick="window.print()">🖨 Imprimir / Exportar</button>
+</div>
+
+<!-- Resumen de la semana -->
+<div class="sem-stats">
+  <div class="stat-card stat-total">
+    <div class="num">{{ total }}</div>
+    <div class="lbl">Total</div>
+  </div>
+  <div class="stat-card stat-conf">
+    <div class="num">{{ confirmadas }}</div>
+    <div class="lbl">Confirmadas</div>
+  </div>
+  <div class="stat-card stat-pend">
+    <div class="num">{{ pendientes }}</div>
+    <div class="lbl">Pendientes</div>
+  </div>
+  <div class="stat-card stat-cancel">
+    <div class="num">{{ canceladas }}</div>
+    <div class="lbl">Canceladas</div>
+  </div>
+</div>
+
+<!-- Grilla semanal -->
+<div class="sem-wrap">
+  <table class="sem-table">
+    <thead>
+      <tr>
+        <th class="th-hora">Hora</th>
+        {% for dia in dias_semana %}
+          <th class="th-dia {% if dia == hoy %}es-hoy{% endif %}">
+            <div class="dia-nombre">
+              {% with n=forloop.counter0 %}
+                {% if n == 0 %}Lun{% elif n == 1 %}Mar{% elif n == 2 %}Mié{% elif n == 3 %}Jue{% elif n == 4 %}Vie{% elif n == 5 %}Sáb{% else %}Dom{% endif %}
+              {% endwith %}
+            </div>
+            <div class="dia-fecha">{{ dia|date:"d/m" }}{% if dia == hoy %} ★{% endif %}</div>
+          </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in grid %}
+      <tr>
+        <td class="td-hora">{{ fila.hora|time:"H:i" }}</td>
+        {% for celda in fila.celdas %}
+          <td>
+            {% if celda.tipo == "cerrado" %}
+              <div class="celda celda-cerrado">
+                <span class="celda-libre-txt">—</span>
+              </div>
+
+            {% elif celda.tipo == "libre" %}
+              <div class="celda celda-libre">
+                <span class="celda-libre-txt">Libre</span>
+              </div>
+
+            {% elif celda.tipo == "pendiente" %}
+              <div class="celda celda-pendiente">
+                <a href="{% url 'admin:reservas_turno_change' celda.turno.pk %}">
+                  <div class="celda-nombre">{{ celda.turno.nombre_completo }}</div>
+                  <div class="celda-servicio">
+                    {% if celda.turno.servicio %}{{ celda.turno.servicio.nombre }}{% else %}Consulta{% endif %}
+                  </div>
+                </a>
+              </div>
+
+            {% elif celda.tipo == "confirmada" %}
+              <div class="celda celda-confirmada">
+                <a href="{% url 'admin:reservas_turno_change' celda.turno.pk %}">
+                  <div class="celda-nombre">✓ {{ celda.turno.nombre_completo }}</div>
+                  <div class="celda-servicio">
+                    {% if celda.turno.servicio %}{{ celda.turno.servicio.nombre }}{% else %}Consulta{% endif %}
+                  </div>
+                </a>
+              </div>
+
+            {% elif celda.tipo == "cancelada" %}
+              <div class="celda celda-cancelada">
+                <div class="celda-nombre">✕ {{ celda.turno.nombre_completo }}</div>
+                <div class="celda-servicio">Cancelada</div>
+              </div>
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Leyenda -->
+<div class="leyenda">
+  <div class="leyenda-item"><div class="leyenda-dot" style="background:#ecfdf5;border:1px solid #6ee7b7;"></div>Confirmada</div>
+  <div class="leyenda-item"><div class="leyenda-dot" style="background:#fffbeb;border:1px solid #fcd34d;"></div>Pendiente de confirmar</div>
+  <div class="leyenda-item"><div class="leyenda-dot" style="background:#fff1f2;border:1px solid #fda4af;"></div>Cancelada</div>
+  <div class="leyenda-item"><div class="leyenda-dot" style="background:#f0fdf4;border:1px dashed #bbf7d0;"></div>Disponible</div>
+  <div class="leyenda-item"><div class="leyenda-dot" style="background:#f3f4f6;border:1px solid #e5e7eb;"></div>No laboral</div>
+</div>
+
+{% endblock %}

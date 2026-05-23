@@ -1,0 +1,15 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+  <li>
+    <a href="{{ agenda_url }}" class="viewsitelink" style="background:#417690;">
+      📅 Agenda del día
+    </a>
+  </li>
+  <li>
+    <a href="{{ semana_url }}" class="viewsitelink" style="background:#28a745;">
+      📆 Resumen semanal
+    </a>
+  </li>
+  {{ block.super }}
+{% endblock %}
