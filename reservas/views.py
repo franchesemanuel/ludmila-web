@@ -57,17 +57,7 @@ def reservar(request):
             messages.error(request, "Las reservas requieren al menos 2 horas de anticipación.")
             return render(request, "reservas/reservar.html", ctx)
 
-        # ── 3. Verificar que el slot no esté ocupado ──────────────────────────
-        if Turno.objects.filter(fecha=fecha, hora=hora, cancelado=False).exists():
-            messages.error(request, "Ese horario ya está reservado. Por favor elegí otro.")
-            return render(request, "reservas/reservar.html", ctx)
-
-        # ── 4. Verificar que el usuario no tenga ya una cita ese día ─────────
-        if Turno.objects.filter(usuario=request.user, fecha=fecha, cancelado=False).exists():
-            messages.error(request, "Ya tenés una cita reservada para ese día.")
-            return render(request, "reservas/reservar.html", ctx)
-
-        # ── 5. Resolver servicio ──────────────────────────────────────────────
+        # ── 3. Resolver servicio (necesario para calcular duración) ──────────
         servicio = None
         servicio_id = request.POST.get("servicio")
         if servicio_id:
@@ -75,6 +65,23 @@ def reservar(request):
                 servicio = Servicio.objects.get(id=servicio_id, activo=True)
             except Servicio.DoesNotExist:
                 pass
+
+        # ── 4. Verificar solapamiento con reservas existentes (por duración) ─
+        duracion_nueva = servicio.duracion_minutos if servicio else _get_intervalo()
+        slot_inicio = datetime.combine(fecha, hora)
+        slot_fin = slot_inicio + timedelta(minutes=duracion_nueva)
+        for t in Turno.objects.filter(fecha=fecha, cancelado=False).select_related("servicio"):
+            t_inicio = datetime.combine(fecha, t.hora)
+            t_dur = t.servicio.duracion_minutos if t.servicio else _get_intervalo()
+            t_fin = t_inicio + timedelta(minutes=t_dur)
+            if slot_inicio < t_fin and slot_fin > t_inicio:
+                messages.error(request, "Ese horario se superpone con una cita ya reservada. Por favor elegí otro.")
+                return render(request, "reservas/reservar.html", ctx)
+
+        # ── 5. Verificar que el usuario no tenga ya una cita ese día ─────────
+        if Turno.objects.filter(usuario=request.user, fecha=fecha, cancelado=False).exists():
+            messages.error(request, "Ya tenés una cita reservada para ese día.")
+            return render(request, "reservas/reservar.html", ctx)
 
         # ── 6. Crear — el modelo todavía corre full_clean() como última red ───
         try:
@@ -104,8 +111,9 @@ def reservar(request):
 @login_required
 def horas_disponibles(request):
     """
-    Devuelve lista de horas disponibles para una fecha dada.
-    Usa comparación timezone-aware para filtrar horas pasadas.
+    Devuelve horas disponibles para una fecha y servicio dados.
+    Bloquea cualquier slot que se superponga con una reserva existente,
+    considerando la duración real de cada servicio (especialista única).
     """
     fecha_str = request.GET.get("fecha")
     if not fecha_str:
@@ -116,7 +124,6 @@ def horas_disponibles(request):
     except ValueError:
         return JsonResponse({"horas": []})
 
-    # Fecha en el pasado
     if fecha < timezone.localdate():
         return JsonResponse({"horas": [], "motivo": "fecha_pasada"})
 
@@ -128,20 +135,48 @@ def horas_disponibles(request):
         return JsonResponse({"horas": [], "motivo": "dia_no_laboral"})
 
     intervalo = _get_intervalo()
+
+    # Duración del servicio que el cliente quiere reservar
+    servicio_id = request.GET.get("servicio_id")
+    duracion_nueva = intervalo
+    if servicio_id:
+        try:
+            serv = Servicio.objects.get(pk=servicio_id, activo=True)
+            duracion_nueva = serv.duracion_minutos
+        except Servicio.DoesNotExist:
+            pass
+
     minimo_desde = timezone.now() + timedelta(hours=2)
-    ocupados = set(
-        Turno.objects.filter(fecha=fecha, cancelado=False).values_list("hora", flat=True)
+
+    # Reservas existentes con su duración real
+    turnos_dia = list(
+        Turno.objects.filter(fecha=fecha, cancelado=False).select_related("servicio")
     )
+    reservas = [
+        (t.hora, t.servicio.duracion_minutos if t.servicio else intervalo)
+        for t in turnos_dia
+    ]
 
     slots_set = set()
     for bloque in bloques:
         actual = datetime.combine(fecha, bloque.hora_inicio)
-        fin = datetime.combine(fecha, bloque.hora_fin)
-        while actual < fin:
+        fin_bloque = datetime.combine(fecha, bloque.hora_fin)
+        while actual < fin_bloque:
             hora = actual.time()
             slot_aware = timezone.make_aware(datetime.combine(fecha, hora))
-            if slot_aware > minimo_desde and hora not in ocupados:
-                slots_set.add(hora.strftime("%H:%M"))
+            if slot_aware > minimo_desde:
+                slot_inicio = datetime.combine(fecha, hora)
+                slot_fin = slot_inicio + timedelta(minutes=duracion_nueva)
+                # El servicio debe terminar dentro del bloque horario
+                if slot_fin <= fin_bloque:
+                    # Detectar solapamiento con cualquier reserva existente
+                    conflicto = any(
+                        slot_inicio < datetime.combine(fecha, r_hora) + timedelta(minutes=r_dur)
+                        and slot_fin > datetime.combine(fecha, r_hora)
+                        for r_hora, r_dur in reservas
+                    )
+                    if not conflicto:
+                        slots_set.add(hora.strftime("%H:%M"))
             actual += timedelta(minutes=intervalo)
 
     horas = sorted(slots_set)

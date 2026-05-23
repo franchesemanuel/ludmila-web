@@ -179,11 +179,23 @@ class Turno(models.Model):
             if not any(b.hora_inicio <= hora < b.hora_fin for b in bloques_dia):
                 raise ValidationError("Horario fuera de atención.")
 
-        # ── Siempre: no superponer con otro turno activo ──────────────────────
-        if Turno.objects.exclude(pk=self.pk).filter(
-            fecha=self.fecha, hora=self.hora, cancelado=False
-        ).exists():
-            raise ValidationError("Ese horario ya está reservado.")
+        # ── Siempre: no superponer con otro turno activo (por duración) ─────────
+        config = ConfiguracionAgenda.objects.first()
+        intervalo = config.intervalo_minutos if config else 30
+        duracion_propia = self.servicio.duracion_minutos if self.servicio else intervalo
+        mi_inicio = _dt.datetime.combine(fecha, hora)
+        mi_fin = mi_inicio + _dt.timedelta(minutes=duracion_propia)
+
+        for t in Turno.objects.exclude(pk=self.pk).filter(fecha=self.fecha, cancelado=False).select_related("servicio"):
+            try:
+                t_hora = t.hora if isinstance(t.hora, _dt.time) else _dt.time.fromisoformat(str(t.hora)[:5])
+            except (ValueError, TypeError):
+                continue
+            t_inicio = _dt.datetime.combine(t.fecha, t_hora)
+            t_dur = t.servicio.duracion_minutos if t.servicio else intervalo
+            t_fin = t_inicio + _dt.timedelta(minutes=t_dur)
+            if mi_inicio < t_fin and mi_fin > t_inicio:
+                raise ValidationError("Ese horario se superpone con una cita ya reservada.")
 
     def save(self, *args, **kwargs):
         self.full_clean()  # 🔒 fuerza validaciones siempre

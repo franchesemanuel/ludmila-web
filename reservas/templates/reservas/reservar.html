@@ -81,8 +81,8 @@
 }
 .paso-bloque.visible { display: block; }
 
-/* ── Selección de fecha ───────────────────────────────── */
-.fecha-elegida {
+/* ── Chips de selección (fecha / servicio) ────────────── */
+.chip-elegido {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -92,10 +92,10 @@
   border-radius: 50px;
   font-size: 0.88rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   cursor: pointer;
 }
-.fecha-elegida i { color: var(--gold); }
+.chip-elegido i { color: var(--gold); }
 
 /* ── Grid de horarios ─────────────────────────────────── */
 .horas-grid {
@@ -257,7 +257,7 @@
         </div>
       {% endfor %}
 
-      <!-- Barra de pasos -->
+      <!-- Barra de pasos: Día → Servicio → Hora → Confirmar -->
       <div class="pasos-bar" id="pasos-bar">
         <div class="paso-item activo" data-paso="1">
           <div class="paso-circulo">1</div>
@@ -265,11 +265,11 @@
         </div>
         <div class="paso-item" data-paso="2">
           <div class="paso-circulo">2</div>
-          <span class="paso-label">Hora</span>
+          <span class="paso-label">Servicio</span>
         </div>
         <div class="paso-item" data-paso="3">
           <div class="paso-circulo">3</div>
-          <span class="paso-label">Servicio</span>
+          <span class="paso-label">Hora</span>
         </div>
         <div class="paso-item" data-paso="4">
           <div class="paso-circulo">4</div>
@@ -298,40 +298,20 @@
             </div>
 
             <!-- ══════════════════════════════════
-                 PASO 2: Elegir hora
+                 PASO 2: Elegir servicio
             ══════════════════════════════════ -->
             <div class="paso-bloque" id="bloque-2">
               <button type="button" class="btn-volver" onclick="volverA(1)">
                 <i class="fa-solid fa-chevron-left"></i> Cambiar día
               </button>
-              <div class="fecha-elegida mb-3" onclick="volverA(1)">
+
+              <div class="chip-elegido" onclick="volverA(1)">
                 <i class="fa-regular fa-calendar"></i>
-                <span id="fecha-texto"></span>
+                <span class="js-fecha-texto"></span>
               </div>
 
-              <h5 class="mb-1" style="font-family:var(--font-title);">¿A qué hora?</h5>
-              <p class="text-muted small mb-3">Solo horarios disponibles con al menos 2 hs de anticipación.</p>
-
-              <div id="horas-loading" class="text-center py-4 text-muted">
-                <i class="fa-solid fa-spinner fa-spin me-2"></i> Cargando horarios...
-              </div>
-              <div id="horas-grid" class="horas-grid" style="display:none;"></div>
-              <div id="horas-vacio" class="sin-horas" style="display:none;">
-                <i class="fa-regular fa-calendar-xmark"></i>
-                <strong>Sin turnos disponibles</strong>
-                <p class="mb-0 mt-1 small">No hay horarios para este día que cumplan las 2 hs de anticipación. Elegí otro día.</p>
-              </div>
-            </div>
-
-            <!-- ══════════════════════════════════
-                 PASO 3: Elegir servicio
-            ══════════════════════════════════ -->
-            <div class="paso-bloque" id="bloque-3">
-              <button type="button" class="btn-volver" onclick="volverA(2)">
-                <i class="fa-solid fa-chevron-left"></i> Cambiar horario
-              </button>
               <h5 class="mb-1" style="font-family:var(--font-title);">¿Qué servicio querés?</h5>
-              <p class="text-muted small mb-3">Elegí una opción para continuar.</p>
+              <p class="text-muted small mb-3">Elegí un servicio para ver los horarios disponibles.</p>
 
               {% if servicios_pestanas %}
               <p class="fw-semibold small text-uppercase" style="letter-spacing:1px; color:var(--gold); margin-bottom:0.5rem;">
@@ -379,11 +359,42 @@
             </div>
 
             <!-- ══════════════════════════════════
+                 PASO 3: Elegir hora
+            ══════════════════════════════════ -->
+            <div class="paso-bloque" id="bloque-3">
+              <button type="button" class="btn-volver" onclick="volverA(2)">
+                <i class="fa-solid fa-chevron-left"></i> Cambiar servicio
+              </button>
+
+              <div class="chip-elegido" onclick="volverA(1)">
+                <i class="fa-regular fa-calendar"></i>
+                <span class="js-fecha-texto"></span>
+              </div>
+              <div class="chip-elegido" onclick="volverA(2)" style="background: rgba(184,146,74,0.08);">
+                <i class="fa-solid fa-star"></i>
+                <span class="js-serv-texto"></span>
+              </div>
+
+              <h5 class="mb-1" style="font-family:var(--font-title);">¿A qué hora?</h5>
+              <p class="text-muted small mb-3">Solo horarios disponibles según la duración del servicio.</p>
+
+              <div id="horas-loading" class="text-center py-4 text-muted">
+                <i class="fa-solid fa-spinner fa-spin me-2"></i> Cargando horarios...
+              </div>
+              <div id="horas-grid" class="horas-grid" style="display:none;"></div>
+              <div id="horas-vacio" class="sin-horas" style="display:none;">
+                <i class="fa-regular fa-calendar-xmark"></i>
+                <strong>Sin turnos disponibles</strong>
+                <p class="mb-0 mt-1 small">No hay horarios para este día que cumplan las 2 hs de anticipación. Elegí otro día.</p>
+              </div>
+            </div>
+
+            <!-- ══════════════════════════════════
                  PASO 4: Confirmar
             ══════════════════════════════════ -->
             <div class="paso-bloque" id="bloque-4">
               <button type="button" class="btn-volver" onclick="volverA(3)">
-                <i class="fa-solid fa-chevron-left"></i> Cambiar servicio
+                <i class="fa-solid fa-chevron-left"></i> Cambiar horario
               </button>
               <h5 class="mb-3" style="font-family:var(--font-title);">Confirmá tu reserva</h5>
 
@@ -440,13 +451,20 @@
   /* ── Estado ─────────────────────────────────────── */
   let fechaISO   = "";
   let fechaTexto = "";
-  let horaVal    = "";
+  let servId     = "";
   let servNombre = "";
+  let horaVal    = "";
 
   /* ── Referencias DOM ─────────────────────────────── */
-  const valFecha   = document.getElementById("val-fecha");
-  const valHora    = document.getElementById("val-hora");
-  const valServ    = document.getElementById("val-servicio");
+  const valFecha = document.getElementById("val-fecha");
+  const valHora  = document.getElementById("val-hora");
+  const valServ  = document.getElementById("val-servicio");
+
+  /* ── Actualiza todos los chips de contexto ───────── */
+  function actualizarChips() {
+    document.querySelectorAll(".js-fecha-texto").forEach(el => el.textContent = fechaTexto);
+    document.querySelectorAll(".js-serv-texto").forEach(el => el.textContent = servNombre);
+  }
 
   /* ── Navegación de pasos ─────────────────────────── */
   function irA(n) {
@@ -483,13 +501,12 @@
           fechaTexto = instance.altInput.value;
           valFecha.value = dateStr;
           // Limpiar elecciones posteriores
-          horaVal = ""; valHora.value = "";
-          servNombre = ""; valServ.value = "";
+          servId = ""; servNombre = "";
+          horaVal = ""; valServ.value = ""; valHora.value = "";
           document.querySelectorAll("input[name='_srv_radio']").forEach(r => r.checked = false);
           document.querySelectorAll(".servicio-item").forEach(el => el.classList.remove("seleccionado"));
-
+          actualizarChips();
           irA(2);
-          cargarHoras(dateStr);
         }
       });
     })
@@ -500,25 +517,47 @@
         onChange: function(dates, dateStr, instance) {
           fechaISO = dateStr; fechaTexto = instance.altInput.value;
           valFecha.value = dateStr;
-          irA(2); cargarHoras(dateStr);
+          servId = ""; servNombre = "";
+          horaVal = ""; valServ.value = ""; valHora.value = "";
+          document.querySelectorAll("input[name='_srv_radio']").forEach(r => r.checked = false);
+          document.querySelectorAll(".servicio-item").forEach(el => el.classList.remove("seleccionado"));
+          actualizarChips();
+          irA(2);
         }
       });
     });
 
-  /* ── PASO 2: Cargar horas ───────────────────────── */
-  function cargarHoras(fecha) {
+  /* ── PASO 2: Elegir servicio ────────────────────── */
+  document.querySelectorAll("input[name='_srv_radio']").forEach(radio => {
+    radio.addEventListener("change", function () {
+      document.querySelectorAll(".servicio-item").forEach(el => el.classList.remove("seleccionado"));
+      this.closest(".servicio-item").classList.add("seleccionado");
+      servId     = this.value;
+      servNombre = this.dataset.nombre;
+      valServ.value = this.value;
+      // Limpiar hora anterior (distinto servicio = distinta disponibilidad)
+      horaVal = ""; valHora.value = "";
+      actualizarChips();
+      irA(3);
+      cargarHoras(fechaISO, servId);
+    });
+  });
+
+  /* ── PASO 3: Cargar horas ────────────────────────── */
+  function cargarHoras(fecha, servicioId) {
     const loading = document.getElementById("horas-loading");
     const grid    = document.getElementById("horas-grid");
     const vacio   = document.getElementById("horas-vacio");
-    const textoEl = document.getElementById("fecha-texto");
 
-    textoEl.textContent = fechaTexto;
     loading.style.display = "block";
     grid.style.display    = "none";
     vacio.style.display   = "none";
     grid.innerHTML        = "";
 
-    fetch(`/reservar/horas-disponibles/?fecha=${fecha}&_=${Date.now()}`)
+    let url = `/reservar/horas-disponibles/?fecha=${fecha}&_=${Date.now()}`;
+    if (servicioId) url += `&servicio_id=${servicioId}`;
+
+    fetch(url)
       .then(r => r.json())
       .then(data => {
         loading.style.display = "none";
@@ -563,23 +602,12 @@
     btn.classList.add("seleccionada");
     horaVal = h;
     valHora.value = h;
-    setTimeout(() => irA(3), 180);
+    // Actualizar resumen
+    document.getElementById("res-fecha").textContent    = fechaTexto;
+    document.getElementById("res-hora").textContent     = horaVal;
+    document.getElementById("res-servicio").textContent = servNombre;
+    setTimeout(() => irA(4), 180);
   }
-
-  /* ── PASO 3: Elegir servicio ────────────────────── */
-  document.querySelectorAll("input[name='_srv_radio']").forEach(radio => {
-    radio.addEventListener("change", function () {
-      document.querySelectorAll(".servicio-item").forEach(el => el.classList.remove("seleccionado"));
-      this.closest(".servicio-item").classList.add("seleccionado");
-      valServ.value = this.value;
-      servNombre    = this.dataset.nombre;
-      // Actualizar resumen y avanzar
-      document.getElementById("res-fecha").textContent    = fechaTexto;
-      document.getElementById("res-hora").textContent     = horaVal;
-      document.getElementById("res-servicio").textContent = servNombre;
-      setTimeout(() => irA(4), 200);
-    });
-  });
 
 })();
 </script>
