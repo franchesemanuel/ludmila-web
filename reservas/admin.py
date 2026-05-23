@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.urls import path
 from django.shortcuts import render
 from django.utils import timezone
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 from .models import Turno, ConfiguracionAgenda, HorarioBloque, DiaBloqueado, Servicio
 
 
@@ -74,16 +74,16 @@ class TurnoAdmin(admin.ModelAdmin):
 
     def estado_badge(self, obj):
         if obj.cancelado:
-            return format_html(
+            return mark_safe(
                 '<span style="background:#f8d7da;color:#58151c;padding:3px 10px;'
                 'border-radius:20px;font-size:0.75rem;font-weight:600;">Cancelada</span>'
             )
         if obj.aceptado:
-            return format_html(
+            return mark_safe(
                 '<span style="background:#d1e7dd;color:#0a3622;padding:3px 10px;'
                 'border-radius:20px;font-size:0.75rem;font-weight:600;">✓ Confirmada</span>'
             )
-        return format_html(
+        return mark_safe(
             '<span style="background:#fff3cd;color:#664d03;padding:3px 10px;'
             'border-radius:20px;font-size:0.75rem;font-weight:600;">Pendiente</span>'
         )
