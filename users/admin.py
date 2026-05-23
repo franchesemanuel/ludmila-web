@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 from reservas.models import Turno
 
 
@@ -20,10 +20,10 @@ class TurnoInline(admin.TabularInline):
 
     def estado_inline(self, obj):
         if obj.cancelado:
-            return format_html('<span style="color:#dc3545;font-weight:600;">Cancelada</span>')
+            return mark_safe('<span style="color:#dc3545;font-weight:600;">Cancelada</span>')
         if obj.aceptado:
-            return format_html('<span style="color:#198754;font-weight:600;">✓ Confirmada</span>')
-        return format_html('<span style="color:#fd7e14;font-weight:600;">Pendiente</span>')
+            return mark_safe('<span style="color:#198754;font-weight:600;">✓ Confirmada</span>')
+        return mark_safe('<span style="color:#fd7e14;font-weight:600;">Pendiente</span>')
     estado_inline.short_description = "Estado"
 
 
