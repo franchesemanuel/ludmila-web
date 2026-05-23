@@ -11,7 +11,7 @@
     <div class="auth-left-glow"></div>
     <div class="auth-left-content">
       <p class="auth-brand">Ludmila Estudio</p>
-      <p class="auth-tagline">Comenza tu<br>transformacion</p>
+      <p class="auth-tagline">Comenzá tu<br>transformación</p>
       <div class="auth-gold-line"></div>
     </div>
   </div>
@@ -23,7 +23,7 @@
       <p class="section-eyebrow text-center">Crea tu cuenta</p>
       <h2 class="section-title text-center mb-1">Registrate</h2>
       <p class="text-center mb-4" style="color: var(--texto-muted); font-size:0.9rem; font-weight:300;">
-        Registrate para reservar y gestionar tus turnos facilmente
+        Registrate para reservar y gestionar tus turnos fácilmente
       </p>
 
       {% for message in messages %}
@@ -50,35 +50,35 @@
         <div class="mb-3">
           <label class="form-label">
             <i class="fa-solid fa-phone me-1" style="color: var(--gold);"></i>
-            Telefono
+            Teléfono
           </label>
           <input type="text" name="telefono"
                  class="form-control form-control-lg"
                  placeholder="Ej: 3512345678"
                  required>
-          <div class="form-text" style="color: var(--texto-muted); font-size:0.82rem;">Tu telefono sera tu usuario para ingresar.</div>
+          <div class="form-text" style="color: var(--texto-muted); font-size:0.82rem;">Tu teléfono será tu usuario para ingresar.</div>
         </div>
 
         <div class="mb-3">
           <label class="form-label">
             <i class="fa-solid fa-lock me-1" style="color: var(--gold);"></i>
-            Contrasena
+            Contraseña
           </label>
           <input type="password" name="password1"
                  class="form-control form-control-lg"
-                 placeholder="Tu contrasena"
+                 placeholder="Tu contraseña"
                  required>
-          <div class="form-text" style="color: var(--texto-muted); font-size:0.82rem;">Minimo 8 caracteres, una mayuscula y un numero.</div>
+          <div class="form-text" style="color: var(--texto-muted); font-size:0.82rem;">Mínimo 8 caracteres, una mayúscula y un número.</div>
         </div>
 
         <div class="mb-4">
           <label class="form-label">
             <i class="fa-solid fa-lock me-1" style="color: var(--gold);"></i>
-            Repetir contrasena
+            Repetir contraseña
           </label>
           <input type="password" name="password2"
                  class="form-control form-control-lg"
-                 placeholder="Repeti la contrasena"
+                 placeholder="Repetí la contraseña"
                  required>
         </div>
 
@@ -88,9 +88,9 @@
       </form>
 
       <p class="text-center mt-4" style="font-size:0.88rem; color: var(--texto-muted);">
-        Ya tenes cuenta?
+        ¿Ya tenés cuenta?
         <a href="{% url 'login' %}" style="color: var(--gold); font-weight: 600;">
-          Iniciar sesion
+          Iniciar sesión
         </a>
       </p>
 

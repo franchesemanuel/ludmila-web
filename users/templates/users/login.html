@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Iniciar sesion – Ludmila Estudio{% endblock %}
+{% block title %}Iniciar sesión – Ludmila Estudio{% endblock %}
 
 {% block content %}
 <div class="auth-page" style="margin-top: -72px;">
@@ -11,7 +11,7 @@
     <div class="auth-left-glow"></div>
     <div class="auth-left-content">
       <p class="auth-brand">Ludmila Estudio</p>
-      <p class="auth-tagline">Tu belleza,<br>nuestra pasion</p>
+      <p class="auth-tagline">Tu belleza,<br>nuestra pasión</p>
       <div class="auth-gold-line"></div>
     </div>
   </div>
@@ -21,9 +21,9 @@
     <div class="auth-form-box">
 
       <p class="section-eyebrow text-center">Bienvenida</p>
-      <h2 class="section-title text-center mb-1">Iniciar sesion</h2>
+      <h2 class="section-title text-center mb-1">Iniciar sesión</h2>
       <p class="text-center mb-4" style="color: var(--texto-muted); font-size:0.9rem; font-weight:300;">
-        Accede a tu cuenta para gestionar tus turnos
+        Accedé a tu cuenta para gestionar tus turnos
       </p>
 
       {% for message in messages %}
@@ -39,7 +39,7 @@
         <div class="mb-3">
           <label class="form-label">
             <i class="fa-solid fa-phone me-1" style="color: var(--gold);"></i>
-            Telefono
+            Teléfono
           </label>
           <input type="text" name="telefono"
                  class="form-control form-control-lg"
@@ -50,11 +50,11 @@
         <div class="mb-4">
           <label class="form-label">
             <i class="fa-solid fa-lock me-1" style="color: var(--gold);"></i>
-            Contrasena
+            Contraseña
           </label>
           <input type="password" name="password"
                  class="form-control form-control-lg"
-                 placeholder="Tu contrasena"
+                 placeholder="Tu contraseña"
                  required>
         </div>
 
@@ -64,9 +64,9 @@
       </form>
 
       <p class="text-center mt-4" style="font-size:0.88rem; color: var(--texto-muted);">
-        No tenes cuenta?
+        ¿No tenés cuenta?
         <a href="{% url 'register' %}" style="color: var(--gold); font-weight: 600;">
-          Registrate aqui
+          Registrate aquí
         </a>
       </p>
 
